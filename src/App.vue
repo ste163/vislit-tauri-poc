@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api";
-import HelloWorld from "./components/HelloWorld.vue";
 
 // example of saving to the file system
 // https://www.matthewtao.com/blog/post/glipma-devlog-2/
@@ -14,27 +13,29 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
 </script>
 
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
-</template>
+  <!-- TODO
+    see how the main content moves with toggle-able columns.
+    see how it responds to layout changes in main content
+  -->
+  <v-layout>
+    <v-app-bar class="pl-5">VISLIT TAURI EXPIREMENT</v-app-bar>
+    <v-navigation-drawer permanent class="pt-5"> Side nav </v-navigation-drawer>
+    <v-main
+      ><h1>What to test</h1>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+      <ol class="text-left">
+        <li>Writing JSON files with Rust API</li>
+        <li>Reading JSON from those files with Rust API</li>
+        <li>
+          Using Faker (or a similar project), create a simple way to generate
+          project objects and update them. Like two or three dozen or so at a
+          time so I can test how quickly tauri handles reading larger json
+          files. Like 100mb would be ideal, potentially. Would want to display a
+          count of the data + parts of the data. Along with some logging on
+          speeds. Then test with a production version of tauri
+        </li>
+        <li>How does the frontend look across OSes?</li>
+      </ol>
+    </v-main>
+  </v-layout>
+</template>
