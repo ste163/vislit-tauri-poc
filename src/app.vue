@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api";
+import { appConfigDir, appDataDir } from "@tauri-apps/api/path";
 
 // example of saving to the file system
 // https://www.matthewtao.com/blog/post/glipma-devlog-2/
+
+async function logAppConfigDir() {
+  const dir = await appConfigDir();
+  console.log("APP CONFIG DIR", dir);
+}
+
+async function logAppDataDir() {
+  const dir = await appDataDir();
+  console.log("APP DATA DIR", dir);
+}
 
 // now we can call our Command!
 // Right-click the application background and open the developer tools.
@@ -22,6 +33,12 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
     <v-navigation-drawer permanent class="pt-5"> Side nav </v-navigation-drawer>
     <v-main
       ><h1>What to test</h1>
+
+      <div class="mb-10">
+        <h2>Logging buttons</h2>
+        <button @click="logAppConfigDir">Log app config dir</button>
+        <button @click="logAppDataDir">Log app data dir</button>
+      </div>
 
       <ol class="text-left">
         <li>Writing JSON files with Rust API</li>
