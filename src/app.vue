@@ -1,53 +1,85 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api";
+// TODO: once I figure out which fs and path apis I need
+// add those to the allow-list
 import {
   exists,
   createDir,
   writeFile,
   BaseDirectory,
+  readTextFile,
 } from "@tauri-apps/api/fs";
+import { appDataDir, join } from "@tauri-apps/api/path";
 import { onMounted, ref } from "vue";
 
-// TODO:
-// add the Project type of Record<string, Project>
-const projects = ref<any>(null); // no project type yet
+const VISLIT_DATA = "vislit-data";
+const PROJECTS_JSON = "projects.json";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  typeId: string;
+  type: any;
+  goal: any;
+  completed: boolean;
+  archived: boolean;
+  dateCreated: Date;
+  dateModified: Date;
+}
+
+type Projects = Record<string, Project> | {} | null;
+
+const projects = ref<Projects>(null);
 
 // example of saving to the file system
 // https://www.matthewtao.com/blog/post/glipma-devlog-2/
 
 async function loadData() {
-  // currently tauri
-  // does not allow writing
-  // to arbitrary directories inside appDir
-  // like appDir/vislit-data
-  // so using the appDir/ with writing .json in there
-  // but MUST figure out how, or else it won't work.
-  // need the /projects/id/{date}.html
-  console.log("load data");
+  console.log("START - LOADING DATA");
   try {
-    const doesVislitDataExist = await exists("projects.json", {
-      dir: BaseDirectory.AppData,
-    });
+    const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
+    const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
     if (doesVislitDataExist) {
-      console.log("vislit data exists!");
-      // read appDataDir, projects.json
-      // set that data to state
+      console.log("DATA EXISTS - READING FILE");
+      const contents = await readTextFile(
+        await join(VISLIT_DATA, PROJECTS_JSON),
+        { dir: BaseDirectory.AppData }
+      );
+      const value = JSON.parse(contents) as Projects;
+      console.log("END - READ PROJECT DATA FROM FILE", value);
+      projects.value = value;
     } else {
-      console.log("vislit data does NOT exist");
-      await writeFile("projects.json", "{}", {
+      console.log("DATA DOES NOT EXIST - CREATE VISLIT DATA");
+      await createDir(VISLIT_DATA, {
+        dir: BaseDirectory.AppData,
+        recursive: true,
+      });
+      console.log("VISLIT DATA DIRECTORY CREATED AT: ", VISLIT_DATA_PATH);
+      await writeFile(await join(VISLIT_DATA, PROJECTS_JSON), "{}", {
         dir: BaseDirectory.AppData,
       });
-      // createDir vislit-data
-      // then create file projects.json inside of that
-      // then set projects to an empty {}
-      // as we know we will have no data in there
+      console.log("END - PROJECT.JSON CREATED");
+      projects.value = {};
     }
-
-    // const appDataDirPath = await appDataDir();
-    // const path = await join(appDataDirPath, 'users', 'tauri', 'avatar.png');
   } catch (error) {
     console.error(error);
   }
+}
+
+async function addProjects() {
+  console.log("ADD PROJECTS");
+  // add faker
+  // create 10 fake projects
+  // pass those 10 into a "api"
+  // wrapper function that writes to projects.json
+}
+
+async function removeProjects() {
+  console.log("REMOVE PROJECTS");
+  // get all the project data from state
+  // remove the last five objects
+  // pass that into the api to save project state
 }
 
 // app data dir and app config dir default to the same location
@@ -72,24 +104,27 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- TODO
+  <!-- TODO UI:
     see how the main content moves with toggle-able columns.
     see how it responds to layout changes in main content
   -->
   <v-layout>
-    <v-app-bar class="pl-5">VISLIT TAURI EXPIREMENT</v-app-bar>
     <v-navigation-drawer permanent class="pt-5"> Side nav </v-navigation-drawer>
-    <v-main
-      ><h1>What to test</h1>
-
-      <div class="mb-10 px-10">
-        <v-alert color="info">
-          Project data is:
-          <strong>{{ projects }}</strong>
+    <v-main>
+      <div class="my-10 px-10">
+        <v-btn @click="addProjects" class="mr-4">Add 10 Projects</v-btn>
+        <v-btn @click="removeProjects">Remove the last 5 Projects</v-btn>
+        <v-alert class="mt-5 d-flex" color="info">
+          <div v-if="projects">
+            <strong>Count of projects:</strong>
+            {{ Object.keys(projects).length }}
+          </div>
+          <div><strong>Project data is:</strong> {{ projects }}</div>
         </v-alert>
       </div>
 
       <v-list class="text-left">
+        <h2 class="ml-4">What to test</h2>
         <v-list-item>Writing JSON files with Rust API</v-list-item>
         <v-list-item>Reading JSON from those files with Rust API</v-list-item>
         <v-list-item>
@@ -100,7 +135,10 @@ onMounted(async () => {
           count of the data + parts of the data. Along with some logging on
           speeds. Then test with a production version of tauri
         </v-list-item>
-        <v-list-item>How does the frontend look across OSes?</v-list-item>
+        <v-list-item>
+          Once all that's working, setup basic unit tests for loading data using
+          the Tauri api mocks with Vitest
+        </v-list-item>
       </v-list>
     </v-main>
   </v-layout>

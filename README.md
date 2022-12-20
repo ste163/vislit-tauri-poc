@@ -1,4 +1,4 @@
-# Vislit Tauri Expirement
+# Vislit Tauri Experiment
 
 To see how Tauri performs as opposed to Electron. The Electron version needs its database structure refactored. But if I can do essentially the same work in Tauri, the performance and security improvements would be awesome.
 
@@ -42,4 +42,15 @@ Start dev environment:
 
 ```
 pnpm tauri dev
+```
+
+## Updating project dependencies (non-UI)
+
+Tauri tooling:
+https://tauri.app/v1/guides/development/updating-dependencies
+
+Update rust with
+
+```
+rust update
 ```

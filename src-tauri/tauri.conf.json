@@ -8,14 +8,14 @@
   },
   "package": {
     "productName": "vislit",
-    "version": "0.1.0"
+    "version": "0.0.1"
   },
   "tauri": {
     "allowlist": {
       "all": true,
       "fs": {
         "all": true,
-        "scope": ["$APP/*"]
+        "scope": ["$APPDATA/*"]
       },
       "path": {
         "all": true
