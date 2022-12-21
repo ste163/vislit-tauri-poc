@@ -10,6 +10,7 @@ import {
   readTextFile,
 } from "@tauri-apps/api/fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
+import { putProject } from "./api";
 import { onMounted, ref } from "vue";
 // faker is recommended to be a devDep; however,
 // i want to test to do performance testing for writing data
@@ -40,6 +41,8 @@ const projects = ref<Projects>(null);
 // https://www.matthewtao.com/blog/post/glipma-devlog-2/
 
 async function loadData() {
+  // TODO:
+  // log time dif on how long it takes to load data
   console.log("START - LOADING DATA");
   try {
     const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
@@ -72,11 +75,31 @@ async function loadData() {
 }
 
 async function addProjects() {
-  console.log("ADD PROJECTS");
-  // add faker
-  // create 10 fake projects
-  // pass those 10 into a "api"
-  // wrapper function that writes to projects.json
+  let fakeProjects: Record<string, Project> = {};
+  for (let index = 0; index < 10; index++) {
+    const id = faker.datatype.uuid();
+    fakeProjects = {
+      ...fakeProjects,
+      [id]: {
+        id,
+        title: faker.lorem.sentence(),
+        description: faker.lorem.sentences(),
+        typeId: faker.datatype.uuid(),
+        type: "testType",
+        goal: "testGoal",
+        completed: false,
+        archived: false,
+        dateCreated: faker.date.past(),
+        dateModified: faker.date.past(),
+      },
+    };
+  }
+  const response = await putProject({
+    oldProjects: projects.value,
+    newProjects: fakeProjects,
+  });
+
+  projects.value = response;
 }
 
 async function removeProjects() {
@@ -115,6 +138,17 @@ onMounted(async () => {
   <v-layout>
     <v-navigation-drawer permanent class="pt-5"> Side nav </v-navigation-drawer>
     <v-main>
+      <!-- TODO
+      make this a dashboard
+      with information on how many projects
+      the json size
+      time it takes to startup
+      last time it took to do an operation.
+
+      The current slowdown with 1300 projects
+      might not be from Tauri but Vue re-rendering
+      that many items...
+    -->
       <div class="my-10 px-10">
         <v-btn @click="addProjects" class="mr-4">Add 10 Projects</v-btn>
         <v-btn @click="removeProjects">Remove the last 5 Projects</v-btn>
