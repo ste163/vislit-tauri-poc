@@ -55,10 +55,10 @@ The reason for web workers is because `search` is not something that the should 
 
 ## Running the project
 
-Start dev environment:
+Start dev environment (frontend first then backend):
 
 ```
-pnpm tauri dev
+pnpm start
 ```
 
 ## Updating project dependencies (non-UI)

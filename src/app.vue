@@ -1,81 +1,19 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api";
-// TODO: once I figure out which fs and path apis I need
-// add those to the allow-list
-import {
-  exists,
-  createDir,
-  writeFile,
-  BaseDirectory,
-  readTextFile,
-} from "@tauri-apps/api/fs";
-import { appDataDir, join } from "@tauri-apps/api/path";
-import { putProject } from "./api";
+import { Project, Projects, loadProjectData, putProject } from "./api";
 import { onMounted, ref } from "vue";
-// faker is recommended to be a devDep; however,
-// i want to test to do performance testing for writing data
-// on the production tauri app, which will require loads of fake data
+/**
+ * For POC:
+ * faker is being used as a real dependency instead of a devDep
+ * as it will be used in the production build for real testing
+ */
 import { faker } from "@faker-js/faker/locale/en";
-
-const VISLIT_DATA = "vislit-data";
-const PROJECTS_JSON = "projects.json";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  typeId: string;
-  type: any;
-  goal: any;
-  completed: boolean;
-  archived: boolean;
-  dateCreated: Date;
-  dateModified: Date;
-}
-
-type Projects = Record<string, Project> | {} | null;
 
 const projects = ref<Projects>(null);
 
-// example of saving to the file system
-// https://www.matthewtao.com/blog/post/glipma-devlog-2/
-
-async function loadData() {
-  // TODO:
-  // log time dif on how long it takes to load data
-  console.log("START - LOADING DATA");
-  try {
-    const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
-    const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
-    if (doesVislitDataExist) {
-      console.log("DATA EXISTS - READING FILE");
-      const contents = await readTextFile(
-        await join(VISLIT_DATA, PROJECTS_JSON),
-        { dir: BaseDirectory.AppData }
-      );
-      const value = JSON.parse(contents) as Projects;
-      console.log("END - READ PROJECT DATA FROM FILE", value);
-      projects.value = value;
-    } else {
-      console.log("DATA DOES NOT EXIST - CREATE VISLIT DATA");
-      await createDir(VISLIT_DATA, {
-        dir: BaseDirectory.AppData,
-        recursive: true,
-      });
-      console.log("VISLIT DATA DIRECTORY CREATED AT: ", VISLIT_DATA_PATH);
-      await writeFile(await join(VISLIT_DATA, PROJECTS_JSON), "{}", {
-        dir: BaseDirectory.AppData,
-      });
-      console.log("END - PROJECT.JSON CREATED");
-      projects.value = {};
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
-
 async function addProjects() {
   let fakeProjects: Record<string, Project> = {};
+  // create 10 fake projects per button click
   for (let index = 0; index < 10; index++) {
     const id = faker.datatype.uuid();
     fakeProjects = {
@@ -95,38 +33,32 @@ async function addProjects() {
     };
   }
   const response = await putProject({
-    oldProjects: projects.value,
-    newProjects: fakeProjects,
+    projectsToPut: fakeProjects,
+    previousProjectState: projects.value,
   });
-
   projects.value = response;
 }
 
-async function removeProjects() {
-  console.log("REMOVE PROJECTS");
-  // get all the project data from state
-  // remove the last five objects
-  // pass that into the api to save project state
-}
+/**
+ * Not in POC: (Saving Window state)
+ * will need to store window-setting.json data
+ * and load that in the Rust backend so I can restore
+ * the user's last window size and location on screen.
+ * This would need to be saved on the window close event
+ * from the backend. But could attempt to set this
+ * when the Vue app loads, if it's quick enough
+ */
 
-// app data dir and app config dir default to the same location
-// what i'd need to do:
-// have a /vislit-data directory inside data dir
-// have a /vislit-data/window-settings.json that would
-// contain the last window position and size
-// that would be loaded by Rust backend (we don't want to set this
-// from inside vue because there'd be a lag)
-// when we get a CLOSE signal, you save the window position
-
-// now we can call our Command!
-// Right-click the application background and open the developer tools.
-// You will see "Hello, World!" printed in the console!
+/**
+ * Test invoking custom Rust functions not included in the JS api.
+ * This allows me to write anything I want and pass JS data to backend.
+ */
 invoke("greet", { name: "Im the vue app talking to backend!" })
   // `invoke` returns a Promise
   .then((response) => console.log(response));
 
 onMounted(async () => {
-  await loadData();
+  projects.value = await loadProjectData();
 });
 </script>
 
@@ -136,7 +68,16 @@ onMounted(async () => {
     see how it responds to layout changes in main content
   -->
   <v-layout>
-    <v-navigation-drawer permanent class="pt-5"> Side nav </v-navigation-drawer>
+    <v-navigation-drawer permanent class="py-5">
+      <h3>Projects</h3>
+      <sub>(select to set as active)</sub>
+      <div class="d-flex flex-column px-5">
+        <v-btn v-for="project in projects" class="text-truncate my-2">
+          <!-- Set a specific width with ellipsis overflow -->
+          {{ project.title }}
+        </v-btn>
+      </div>
+    </v-navigation-drawer>
     <v-main>
       <!-- TODO
       make this a dashboard
@@ -145,29 +86,36 @@ onMounted(async () => {
       time it takes to startup
       last time it took to do an operation.
 
-      Would also be good to keep the fastest operation
-      with how many items it wrote. AND the slowest
+      Would be best to have a log of per click:
+      50 projects, takes 0.5seconds
+      ...
+      8000 projects takes 3seconds
 
       The current slowdown with 1300 projects
       might not be from Tauri but Vue re-rendering
-      that many items...
+      that many items... Will know when I get an actual table display
     -->
       <div class="my-10 px-10">
+        <!-- TODO: loading state for adding a project so I cant add more than 1 at a time -->
         <v-btn @click="addProjects" class="mr-4">Add 10 Projects</v-btn>
-        <v-btn @click="removeProjects">Remove the last 5 Projects</v-btn>
         <v-alert class="mt-5 d-flex" color="info">
-          <div v-if="projects">
-            <strong>Count of projects:</strong>
-            {{ Object.keys(projects).length }}
+          <div v-if="projects" class="d-flex flex-column">
+            <div>
+              <strong>Count of projects:</strong>
+              {{ Object.keys(projects).length }}
+            </div>
+
+            <div>Make a table with:</div>
+            <div>- Action (Add Project)</div>
+            <div>- How many were added (10)</div>
+            <div>- New Total (30)</div>
+            <div>- Time to complete action</div>
           </div>
-          <div><strong>Project data is:</strong> {{ projects }}</div>
         </v-alert>
       </div>
 
       <v-list class="text-left">
-        <h2 class="ml-4">What to test</h2>
-        <v-list-item>Writing JSON files with Rust API</v-list-item>
-        <v-list-item>Reading JSON from those files with Rust API</v-list-item>
+        <h2 class="ml-4">Performance Testing</h2>
         <v-list-item>
           Performance testing using Faker: create a simple way to generate
           project objects and update them. Then select those projects and
