@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@faker-js/faker": "7.6.0",
     "@tauri-apps/api": "1.2.0",
     "vite-plugin-vuetify": "1.0.1",
     "vue": "3.2.45",

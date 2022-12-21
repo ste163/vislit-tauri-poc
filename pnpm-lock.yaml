@@ -1,6 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@faker-js/faker': 7.6.0
   '@tauri-apps/api': 1.2.0
   '@tauri-apps/cli': 1.2.2
   '@vitejs/plugin-vue': 4.0.0
@@ -12,6 +13,7 @@ specifiers:
   vuetify: 3.0.4
 
 dependencies:
+  '@faker-js/faker': 7.6.0
   '@tauri-apps/api': 1.2.0
   vite-plugin-vuetify: 1.0.1_elsnptheqhr57eponhgf2npktm
   vue: 3.2.45
@@ -224,6 +226,11 @@ packages:
     os: [win32]
     requiresBuild: true
     optional: true
+
+  /@faker-js/faker/7.6.0:
+    resolution: {integrity: sha512-XK6BTq1NDMo9Xqw/YkYyGjSsg44fbNwYRx7QK2CuoQgyy+f1rrTDHoExVM5PsyXCtfl2vs2vVJ0MN0yN6LppRw==}
+    engines: {node: '>=14.0.0', npm: '>=6.0.0'}
+    dev: false
 
   /@tauri-apps/api/1.2.0:
     resolution: {integrity: sha512-lsI54KI6HGf7VImuf/T9pnoejfgkNoXveP14pVV7XarrQ46rOejIVJLFqHI9sRReJMGdh2YuCoI3cc/yCWCsrw==}

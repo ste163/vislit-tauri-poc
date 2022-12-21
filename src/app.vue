@@ -11,6 +11,10 @@ import {
 } from "@tauri-apps/api/fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { onMounted, ref } from "vue";
+// faker is recommended to be a devDep; however,
+// i want to test to do performance testing for writing data
+// on the production tauri app, which will require loads of fake data
+import { faker } from "@faker-js/faker/locale/en";
 
 const VISLIT_DATA = "vislit-data";
 const PROJECTS_JSON = "projects.json";
@@ -128,12 +132,13 @@ onMounted(async () => {
         <v-list-item>Writing JSON files with Rust API</v-list-item>
         <v-list-item>Reading JSON from those files with Rust API</v-list-item>
         <v-list-item>
-          Using Faker (or a similar project), create a simple way to generate
-          project objects and update them. Like two or three dozen or so at a
-          time so I can test how quickly tauri handles reading larger json
-          files. Like 100mb would be ideal, potentially. Would want to display a
-          count of the data + parts of the data. Along with some logging on
-          speeds. Then test with a production version of tauri
+          Performance testing using Faker: create a simple way to generate
+          project objects and update them. Then select those projects and
+          generate years worth of progress data. 5 years worth of data would be
+          be the ideal "good" amount without slow downs. But keep going until
+          slow downs start. Log how quickly writing and reading progress takes.
+          snippet that should log how big the file size is:
+          https://stackoverflow.com/questions/23318037/size-of-json-object-in-kbs-mbs
         </v-list-item>
         <v-list-item>
           Once all that's working, setup basic unit tests for loading data using
