@@ -145,6 +145,9 @@ onMounted(async () => {
       time it takes to startup
       last time it took to do an operation.
 
+      Would also be good to keep the fastest operation
+      with how many items it wrote. AND the slowest
+
       The current slowdown with 1300 projects
       might not be from Tauri but Vue re-rendering
       that many items...
