@@ -1,40 +1,57 @@
-# Vislit Tauri Experiment
+# Vislit Tauri Experiment/Proof of Concept
 
-To see how Tauri performs as opposed to Electron. The Electron version needs its database structure refactored. But if I can do essentially the same work in Tauri, the performance and security improvements would be awesome.
-
-# Todo
-
-1. Can I write `.json` files with data then read those from the frontend?
-2. If yes, how easy is it to write tests for this?
-3. If these are good, how does localStorage work?
-4. How does the frontend look across Linux, Mac, and Windows?
+Research on how Tauri performs as opposed to Electron. The Electron version needs its database structure refactored. But if I can do essentially the same work in Tauri, the performance and security improvements would be worth it.
 
 Why do I want to do this? Electron uses more resources, has large bundle sizes, and a complex build process. I'm also tightly coupled to some projects like lowdb. It would be better to use a handful of "core" dependencies that are not from solo-devs.
 
-- Attempt to write `.json` files for each "project", "notes", etc. in a `"id": {project}` format. That way making edits and re-saving the entire .json would be as easy as:
+## TODO Performance Testing
+
+- Attempt to write `.json` files for each "project", "notes", etc. in a `"projectId": { project }` format. That way making edits and re-saving the entire .json would be as easy as:
 
 ```
 await saveProjects({...projects, newProject})
 ```
 
-- if I could find a way to do some performance testing on how quick rust's fs is, that would be great. "progress" will have the most data most likely, so if I could create a way to test with thousands of json data and see if it's noticeably slow (on reading and writing and displaying that dataset), that'd be great. Also what the memory consumption would be? If it takes "years" worth of data to have noticeable slow downs, that's fine. And then there's always moving data manipulation from the JS code to Rust. Which that would be an optimization years down the line if it takes thousands of data to "start" getting slow
+### Ideal state
 
-## Pros and Cons
+- Able to have dozens of projects with 5+ years worth of writing `progress.json` data mocked without noticeable slow-downs. There will be the `n+1` problem as editing a `json` file rewrites the entire file instead of appending data. `progress` is the one file that would contain the most data, so it's most important to test.
 
-### Tauri
+### To test
 
-- more secure by default
-- good DX and export pipelines by default
-- smaller footprint
-- would require re-writing backend
-- would be more parsing on the client, but this also makes it easier to test, as mocking tauri apis is supported by default. Mocking + testing Electron is not simple
+- Using `faker`, allow for quickly creating and deleting a few dozen projects (with their directories and files)
+- Have a way to select an active project and render that to the page
+- Have buttons for adding 6-months or so of `progress` data per button click and a way to delete 30 or so records at a time
+- Render roughly "how many years" worth of data is in the file.
+- Have logging for the time difference for each operation (`get`, `add`, `delete`)
 
-### Staying with Electron
+## Potential data structure
 
-- Chromium UI is shared by all OS's
-- vue dev tools
-- tightly reliant on many open-source projects like `lowdb` and an electron `template`. Electron requires a bit of setup to get a good dev workflow
-- more resource overhead
+Instead of having a SQL database and server running, using `.json` files for faster development and iteration. It's also easy to backup and export and doesn't require any extra dependencies.
+
+By having separate `goals`, `progress`, and `notes` `.json` files, there "shouldn't" be any size issues. Ie, if one project's `progress.json` is 100mb and contains 5 years worth of progress data, that's fine because we only ever load that data once that project is selected. So any potential speed issues due to `n+1` would only occur for that one project. (Hopefully no slow-down occurs with that much data though.)
+
+```
+/vislit-data
+            /version.json (contains "{ vislit-data-version: 1.0.0 }"
+                           so that I could write migration steps
+                           based on version number)
+            /projects.json
+            /types.json
+            /window-settings.json
+            /projects/{id}
+                          question: should these contain '{id}-'?
+                          /goals.json
+                          /progress.json
+                          /notes.json
+                          /documents/{id}-{date}.html
+                          /notes/{id}-{date}.html
+```
+
+### Potential use-case for web workers and minisearch
+
+Will potentially need to index a lot of data that must be created and stored in-memory. Minisearch uses a simple example with 5k top songs from the last 50 years. It runs very quickly. I could potentially setup the search index with a `web worker` that loads all `json` files and `notes` and indexes those. The search bar could be in a `loading` state until the web worker finishes processing. This would not block the main thread. However, this would be an optimization only after things get slow. Which would require testing.
+
+The reason for web workers is because `search` is not something that the should block the user from using the app
 
 ## Running the project
 
