@@ -36,41 +36,125 @@ interface Project {
   dateModified: Date;
 }
 
-type Projects = Record<string, Project> | {} | null;
+type Projects = Record<string, Project> | null;
 
-async function loadProjectData() {
-  // TODO:
-  // log time dif on how long it takes to load data
-  // and return that to display
-  console.log("START - LOADING DATA");
+enum Actions {
+  InitialLoad = "Initial Load",
+  AddProject = "Add Project",
+  AddProgress = "Add Progress",
+}
+
+interface PerformanceTestItem {
+  projects?: Projects;
+  progress?: any; // TODO: add progress type
+  action: Actions;
+  itemsAffectedByAction: number;
+  totalItems: number;
+  timeToComplete: number;
+  fileSize: number;
+  yearsWorthOfProgress?: number;
+}
+
+/**
+ * For easier rendering, round up to nearest tenth.
+ * Would be best to do this as a computed prop,
+ * but doesn't matter as this is just testing
+ */
+function roundUpToTwoDecimalPlaces(number: number) {
+  return Math.round(number * 100) / 100;
+}
+
+/**
+ * Performance.now() returns milliseconds.
+ * For easier reading, use to convert to seconds
+ */
+function convertMillisecondsToSeconds(number: number) {
+  return number / 1000;
+}
+
+/**
+ * Gets the estimated file size of a json string object.
+ * Because storing everything as JSON, this should be
+ * pretty accurate.
+ * Returns size in megabytes or 0 if an error.
+ */
+function getFileSize(any: any) {
+  try {
+    const length = new TextEncoder().encode(JSON.stringify(any)).length;
+    const sizeInKiloBytes = length / 1024;
+    const sizeInMegaBytes = sizeInKiloBytes / 1024;
+    return sizeInMegaBytes;
+  } catch (error) {
+    console.log("error getting file size for", any);
+    console.error(error);
+    return 0;
+  }
+}
+
+/**
+ * Wrapper function that takes any async function
+ * and returns the time in seconds, rounded up to 2 decimal points
+ */
+async function measurePerformance(
+  fn: (any?: any) => Promise<any>
+): Promise<PerformanceTestItem> {
+  const start = performance.now();
+  const result = await fn();
+  const end = performance.now();
+  return {
+    ...result,
+    timeToComplete: roundUpToTwoDecimalPlaces(
+      convertMillisecondsToSeconds(end - start)
+    ),
+  };
+}
+
+async function loadProjectData(): Promise<PerformanceTestItem> {
   try {
     const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
+    console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
     const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
     if (doesVislitDataExist) {
-      console.log("DATA EXISTS - READING FILE");
       const contents = await readTextFile(
         await join(VISLIT_DATA, PROJECTS_JSON),
         { dir: BaseDirectory.AppData }
       );
-      const value = JSON.parse(contents) as Projects;
-      console.log("END - READ PROJECT DATA FROM FILE", value);
-      return value;
+      const projects = JSON.parse(contents) as Projects;
+      return {
+        projects,
+        action: Actions.InitialLoad,
+        itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
+        totalItems: projects ? Object.keys(projects).length : 0,
+        timeToComplete: 0,
+        fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
+      };
     } else {
-      console.log("DATA DOES NOT EXIST - CREATE VISLIT DATA");
       await createDir(VISLIT_DATA, {
         dir: BaseDirectory.AppData,
         recursive: true,
       });
-      console.log("VISLIT DATA DIRECTORY CREATED AT: ", VISLIT_DATA_PATH);
       await writeFile(await join(VISLIT_DATA, PROJECTS_JSON), "{}", {
         dir: BaseDirectory.AppData,
       });
-      console.log("END - PROJECT.JSON CREATED");
-      return {};
+      return {
+        projects: null,
+        action: Actions.InitialLoad,
+        itemsAffectedByAction: 0,
+        totalItems: 0,
+        timeToComplete: 0,
+        fileSize: 0,
+      };
     }
   } catch (error) {
     console.error(error);
-    return {};
+    return {
+      projects: null,
+      action: Actions.InitialLoad,
+      itemsAffectedByAction: 0,
+      totalItems: 0,
+      timeToComplete: 0,
+      fileSize: 0,
+    };
   }
 }
 
@@ -80,7 +164,7 @@ async function putProject({
 }: {
   projectsToPut: Projects;
   previousProjectState: Projects;
-}) {
+}): Promise<Projects> {
   /**
    * For POC
    * ignoring extra steps for backing up the projects.json
@@ -108,6 +192,6 @@ async function putProject({
   return newProjectState;
 }
 
-export { loadProjectData, putProject };
+export { measurePerformance, loadProjectData, putProject };
 
-export type { Project, Projects };
+export type { PerformanceTestItem, Project, Projects };
