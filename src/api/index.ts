@@ -126,7 +126,7 @@ async function loadProjectData(): Promise<ItemMetadata> {
       return {
         projects,
         action: Actions.InitialLoad,
-        itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
+        itemsAffectedByAction: 0,
         totalItems: projects ? Object.keys(projects).length : 0,
         fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
       };
@@ -186,9 +186,7 @@ async function putProject({
     projects: newProjectState,
     action: Actions.AddProject,
     itemsAffectedByAction: Object.keys(newProjectState).length,
-    totalItems:
-      Object.keys(previousProjectState || {}).length +
-      Object.keys(newProjectState).length,
+    totalItems: Object.keys(newProjectState).length,
     fileSize: roundUpToTwoDecimalPlaces(getFileSize(newProjectState)),
   };
 }

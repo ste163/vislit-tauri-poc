@@ -8,7 +8,7 @@ import {
   loadProjectData,
   putProject,
 } from "./api";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 /**
  * For POC:
  * faker is being used as a real dependency instead of a devDep
@@ -28,7 +28,8 @@ const selectedProject = ref<Project | null>(null);
 /**
  * Performance dashboard state
  */
-const mostRecentActionData = ref<ItemMetadataPerformance | null>(null);
+const operationLog = ref<ItemMetadataPerformance[]>([]);
+const mostRecentOperation = ref<ItemMetadataPerformance | null>(null);
 const initialLoadData = ref<ItemMetadataPerformance | null>(null);
 
 const expansionPanelTitle = computed(() =>
@@ -36,12 +37,6 @@ const expansionPanelTitle = computed(() =>
     ? `Selected Project - ${selectedProject.value.title}`
     : "Select Project"
 );
-
-// TODO - table view:
-// need a computed property that runs whenever we do an operation
-// and then spits out the fully combined table data
-
-// TODO - more operations!: need a delete single project to test removing large amounts of data and directories
 
 async function addProject() {
   try {
@@ -70,7 +65,7 @@ async function addProject() {
           })
       );
       projects.value = response.projects || null;
-      mostRecentActionData.value = response;
+      mostRecentOperation.value = response;
     }
   } catch (error) {
     console.log("addProject error - ", error);
@@ -92,6 +87,7 @@ async function addProgress() {
 function selectProject(id: string) {
   if (projects.value) selectedProject.value = projects.value[id];
 }
+
 /**
  * Not in POC: (Saving Window state)
  * will need to store window-setting.json data
@@ -105,11 +101,16 @@ function selectProject(id: string) {
 onMounted(async () => {
   const result = await measurePerformance(loadProjectData);
   initialLoadData.value = result;
-  mostRecentActionData.value = result;
+  mostRecentOperation.value = result;
   projects.value = result.projects || null;
   if (result.projects)
     // select first project on load if one exists
     selectedProject.value = Object.values(result.projects)[0];
+});
+
+watch(mostRecentOperation, (mostRecentOperation) => {
+  if (mostRecentOperation)
+    operationLog.value = [...operationLog.value, mostRecentOperation];
 });
 
 /**
@@ -123,10 +124,6 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
 
 <template>
   <v-layout>
-    <!-- TODO: only allow for a max of 20 projects -->
-    <!-- Then show a list of all projects underneath. Maybe collapsible -->
-    <!-- Selecting an active project unlocks the add 30 progress buttons -->
-
     <v-main>
       <div class="my-10 px-10">
         <v-alert>
@@ -209,58 +206,50 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
 
               <v-divider class="my-4"></v-divider>
 
-              <h4 class="mt-2">Initial load</h4>
-
-              <div class="d-flex">
-                <div>
-                  <h5>projects.json file size:</h5>
-                  ~ {{ initialLoadData?.fileSize }} mb
-                </div>
-
-                <div class="mb-2 mx-4">
-                  <h5>Time:</h5>
-                  {{ initialLoadData?.timeToComplete }} seconds
-                </div>
-              </div>
-
-              <v-divider class="my-4"></v-divider>
-
               <h4 class="mt-2">Last operation</h4>
 
               <div class="d-flex">
                 <div>
                   <h5>projects.json file size:</h5>
-                  ~ {{ mostRecentActionData?.fileSize }} mb
+                  ~ {{ mostRecentOperation?.fileSize }} mb
                 </div>
 
                 <div class="mx-4">
                   <h5>Last operation:</h5>
-                  {{ mostRecentActionData?.action }}
+                  {{ mostRecentOperation?.action }}
                 </div>
 
                 <div>
                   <h5>Time to complete last operation:</h5>
-                  {{ mostRecentActionData?.timeToComplete }} seconds
+                  {{ mostRecentOperation?.timeToComplete }} seconds
                 </div>
               </div>
             </div>
 
             <v-divider class="my-4"></v-divider>
 
-            <h4>Performance tests per action</h4>
-            <v-table>
+            <h4 class="mb-2">Performance per operation</h4>
+            <!-- TODO: add pagination -->
+            <v-table density="compact" fixed-header>
               <thead>
                 <tr>
-                  <th class="text-left">Action</th>
+                  <th class="text-left">Operation</th>
                   <th class="text-left">Count of Items Affected</th>
                   <th class="text-left">Total Items</th>
                   <th class="text-left">Time to Complete</th>
-                  <th class="text-left">~ JSON Size in MB</th>
+                  <th class="text-left">File Size</th>
                   <th class="text-left">~ Years of Progress</th>
                 </tr>
               </thead>
               <tbody>
-                <tr></tr>
+                <tr v-for="(operation, index) in operationLog" :key="index">
+                  <td>{{ operation.action }}</td>
+                  <td>{{ operation.itemsAffectedByAction }}</td>
+                  <td>{{ operation.totalItems }}</td>
+                  <td>{{ operation.timeToComplete }}</td>
+                  <td>~ {{ operation.fileSize }} mb</td>
+                  <td>TODO</td>
+                </tr>
               </tbody>
             </v-table>
           </div>
