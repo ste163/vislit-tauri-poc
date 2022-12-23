@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api";
 import {
-  PerformanceTestItem,
+  ItemMetadataPerformance,
   Project,
   Projects,
   measurePerformance,
   loadProjectData,
   putProject,
 } from "./api";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 /**
  * For POC:
  * faker is being used as a real dependency instead of a devDep
@@ -16,59 +16,81 @@ import { onMounted, ref } from "vue";
  */
 import { faker } from "@faker-js/faker/locale/en";
 
+// TODO:
+// setup basic unit tests to see how easy it is to work
+// with mocking tauri APIs
+
 const projects = ref<Projects>(null);
-const isAddingProject = ref<boolean>(false);
+const isOperatingOnProject = ref<boolean>(false);
+const isAddingProgress = ref<boolean>(false);
 const selectedProject = ref<Project | null>(null);
 
 /**
- * State related to performance dashboard
+ * Performance dashboard state
  */
-const mostRecentActionData = ref<PerformanceTestItem | null>(null);
-const initialLoadData = ref<PerformanceTestItem | null>(null);
+const mostRecentActionData = ref<ItemMetadataPerformance | null>(null);
+const initialLoadData = ref<ItemMetadataPerformance | null>(null);
 
-// TODO:
+const expansionPanelTitle = computed(() =>
+  selectedProject.value
+    ? `Selected Project - ${selectedProject.value.title}`
+    : "Select Project"
+);
+
+// TODO - table view:
 // need a computed property that runs whenever we do an operation
 // and then spits out the fully combined table data
 
-async function addProjects() {
+// TODO - more operations!: need a delete single project to test removing large amounts of data and directories
+
+async function addProject() {
   try {
-    if (!isAddingProject.value) {
-      isAddingProject.value = true;
-      let fakeProjects: Record<string, Project> = {};
-      // create fake projects per button click
-      for (let index = 0; index < 10; index++) {
-        const id = faker.datatype.uuid();
-        fakeProjects = {
-          ...fakeProjects,
-          [id]: {
-            id,
-            title: faker.lorem.sentence(),
-            description: faker.lorem.sentences(),
-            typeId: faker.datatype.uuid(),
-            type: "testType",
-            goal: "testGoal",
-            completed: false,
-            archived: false,
-            dateCreated: faker.date.past(),
-            dateModified: faker.date.past(),
-          },
-        };
-      }
-      projects.value = await putProject({
-        projectsToPut: fakeProjects,
-        previousProjectState: projects.value,
-      });
+    if (!isOperatingOnProject.value) {
+      isOperatingOnProject.value = true;
+      const id = faker.datatype.uuid();
+      const project = {
+        [id]: {
+          id,
+          title: faker.lorem.sentence(2),
+          description: faker.lorem.sentences(3),
+          typeId: faker.datatype.uuid(),
+          type: "testType",
+          goal: "testGoal",
+          completed: false,
+          archived: false,
+          dateCreated: faker.date.past(),
+          dateModified: faker.date.past(),
+        },
+      };
+      const response = await measurePerformance(
+        async () =>
+          await putProject({
+            projectsToPut: project,
+            previousProjectState: projects.value,
+          })
+      );
+      projects.value = response.projects || null;
+      mostRecentActionData.value = response;
     }
   } catch (error) {
     console.log("addProject error - ", error);
   } finally {
-    isAddingProject.value = false;
+    isOperatingOnProject.value = false;
   }
+}
+
+// pass in id
+async function deleteProject() {
+  console.log("DELETE PROJECT");
+}
+
+// pass in id
+async function addProgress() {
+  console.log("ADD PROGRESS");
 }
 
 function selectProject(id: string) {
   if (projects.value) selectedProject.value = projects.value[id];
-  console.log("selected project is", selectedProject.value);
 }
 /**
  * Not in POC: (Saving Window state)
@@ -83,6 +105,7 @@ function selectProject(id: string) {
 onMounted(async () => {
   const result = await measurePerformance(loadProjectData);
   initialLoadData.value = result;
+  mostRecentActionData.value = result;
   projects.value = result.projects || null;
   if (result.projects)
     // select first project on load if one exists
@@ -99,71 +122,130 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
 </script>
 
 <template>
-  <!-- TODO UI:
-    see how the main content moves with toggle-able columns.
-    see how it responds to layout changes in main content
-  -->
   <v-layout>
-    <!-- TODO have this collapsable for easier table viewing -->
-    <v-navigation-drawer class="py-5">
-      <h3>Projects</h3>
-      <sub>(select to set as active)</sub>
-      <div class="d-flex flex-column px-5">
-        <!-- <v-btn
-          v-for="project in projects"
-          class="text-truncate my-2"
-          :color="project.id === selectedProject?.id ? 'primary' : ''"
-          @click="() => selectProject(project.id)"
-        >
-          {{ project.title }}
-        </v-btn> -->
-      </div>
-    </v-navigation-drawer>
+    <!-- TODO: only allow for a max of 20 projects -->
+    <!-- Then show a list of all projects underneath. Maybe collapsible -->
+    <!-- Selecting an active project unlocks the add 30 progress buttons -->
+
     <v-main>
       <div class="my-10 px-10">
-        <!-- 
-        Issue looks to be that you can click multiple times
-        before the isLoading triggers. Maybe need a count of how many times it's been called
-        and only do once? But that state might not be fast enough
-        -->
-        <v-btn
-          @click="isAddingProject ? null : addProjects()"
-          class="mr-4"
-          :loading="isAddingProject"
-        >
-          Add 10 Project
-        </v-btn>
-        <v-alert class="mt-5 d-flex" color="info">
+        <v-alert>
+          <h4 class="mb-2">Test Operations</h4>
+          <p>
+            <strong>Goal:</strong> five years of progress data with "acceptable"
+            speeds on low-high end machines
+          </p>
+          <!-- 
+          NOTE
+          Known issue: can click or press enter multiple times
+          and multiple put requests go through.
+          -->
+          <div class="d-flex mt-2">
+            <v-btn
+              @click="addProject"
+              class="mx-2 my-2"
+              :loading="isOperatingOnProject"
+            >
+              Add a Project
+            </v-btn>
+          </div>
+
+          <div class="mx-2 my-2">
+            <v-expansion-panels>
+              <v-expansion-panel>
+                <v-expansion-panel-title>{{
+                  expansionPanelTitle
+                }}</v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <div class="d-flex flex-column">
+                    <v-btn
+                      v-for="project in projects"
+                      class="text-truncate my-2"
+                      :color="
+                        project.id === selectedProject?.id ? 'primary' : ''
+                      "
+                      @click="() => selectProject(project.id)"
+                    >
+                      {{ project.title }}
+                    </v-btn>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </div>
+
+          <div class="d-flex">
+            <v-btn
+              @click="deleteProject"
+              class="mx-2 my-2"
+              :loading="isOperatingOnProject"
+              :disabled="selectedProject ? false : true"
+            >
+              Delete Project
+            </v-btn>
+
+            <v-btn
+              @click="addProgress"
+              class="mx-2 my-2"
+              :loading="isAddingProgress"
+              :disabled="selectedProject ? false : true"
+            >
+              Add month of Progress
+            </v-btn>
+          </div>
+        </v-alert>
+        <v-alert class="mt-5 d-flex" compact color="info">
           <div v-if="projects" class="d-flex flex-column">
             <div class="d-flex flex-column mb-4">
-              <h4>Summary of Actively Loaded Data</h4>
+              <h4>Performance Data</h4>
               <div class="text-caption">
-                (Adding and removing projects or progress data will update this
-                section)
+                (Adding and removing projects or progress updates dashboard)
               </div>
 
-              <div class="mt-2">
+              <div class="my-2">
                 <h5>Project count:</h5>
                 {{ Object.keys(projects).length }}
               </div>
 
-              <!-- TODO: have state for the previous operation to render here -->
-              <!-- along with keeping some of the initial load data for quick comparison -->
-              <div class="mt-2">
-                <h5>projects.json file size:</h5>
-                ~ {{ initialLoadData?.fileSize }} mb
+              <v-divider class="my-4"></v-divider>
+
+              <h4 class="mt-2">Initial load</h4>
+
+              <div class="d-flex">
+                <div>
+                  <h5>projects.json file size:</h5>
+                  ~ {{ initialLoadData?.fileSize }} mb
+                </div>
+
+                <div class="mb-2 mx-4">
+                  <h5>Time:</h5>
+                  {{ initialLoadData?.timeToComplete }} seconds
+                </div>
               </div>
 
-              <div class="mt-2">
-                <h5>Last operation:</h5>
-                {{ initialLoadData?.action }}
-              </div>
+              <v-divider class="my-4"></v-divider>
 
-              <div class="mt-2">
-                <h5>Time to complete last operation:</h5>
-                {{ initialLoadData?.timeToComplete }} seconds
+              <h4 class="mt-2">Last operation</h4>
+
+              <div class="d-flex">
+                <div>
+                  <h5>projects.json file size:</h5>
+                  ~ {{ mostRecentActionData?.fileSize }} mb
+                </div>
+
+                <div class="mx-4">
+                  <h5>Last operation:</h5>
+                  {{ mostRecentActionData?.action }}
+                </div>
+
+                <div>
+                  <h5>Time to complete last operation:</h5>
+                  {{ mostRecentActionData?.timeToComplete }} seconds
+                </div>
               </div>
             </div>
+
+            <v-divider class="my-4"></v-divider>
 
             <h4>Performance tests per action</h4>
             <v-table>
@@ -172,13 +254,9 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                   <th class="text-left">Action</th>
                   <th class="text-left">Count of Items Affected</th>
                   <th class="text-left">Total Items</th>
-                  <th class="text-left">
-                    Time to Complete Action (in Seconds)
-                  </th>
-                  <th class="text-left">Approximate File Size in MB</th>
-                  <th class="text-left">
-                    Approximate Years worth of progress data
-                  </th>
+                  <th class="text-left">Time to Complete</th>
+                  <th class="text-left">~ JSON Size in MB</th>
+                  <th class="text-left">~ Years of Progress</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,19 +266,6 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
           </div>
         </v-alert>
       </div>
-
-      <v-list class="text-left">
-        <h2 class="ml-4">Performance Testing</h2>
-        <v-list-item>
-          Performance testing: about 5 years worth of progress data per project
-          would be a "safe" amount for using a JSON structure. Also see what the
-          "cap" is. Test on a low-end machine for best accuracy.
-        </v-list-item>
-        <v-list-item>
-          Once all that's working, setup basic unit tests for loading data using
-          the Tauri api mocks with Vitest
-        </v-list-item>
-      </v-list>
     </v-main>
   </v-layout>
 </template>

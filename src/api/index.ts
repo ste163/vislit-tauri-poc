@@ -44,15 +44,18 @@ enum Actions {
   AddProgress = "Add Progress",
 }
 
-interface PerformanceTestItem {
+interface ItemMetadata {
   projects?: Projects;
   progress?: any; // TODO: add progress type
   action: Actions;
   itemsAffectedByAction: number;
   totalItems: number;
-  timeToComplete: number;
   fileSize: number;
   yearsWorthOfProgress?: number;
+}
+
+interface ItemMetadataPerformance extends ItemMetadata {
+  timeToComplete: number;
 }
 
 /**
@@ -97,7 +100,7 @@ function getFileSize(any: any) {
  */
 async function measurePerformance(
   fn: (any?: any) => Promise<any>
-): Promise<PerformanceTestItem> {
+): Promise<ItemMetadataPerformance> {
   const start = performance.now();
   const result = await fn();
   const end = performance.now();
@@ -109,7 +112,7 @@ async function measurePerformance(
   };
 }
 
-async function loadProjectData(): Promise<PerformanceTestItem> {
+async function loadProjectData(): Promise<ItemMetadata> {
   try {
     const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
     console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
@@ -125,7 +128,6 @@ async function loadProjectData(): Promise<PerformanceTestItem> {
         action: Actions.InitialLoad,
         itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
         totalItems: projects ? Object.keys(projects).length : 0,
-        timeToComplete: 0,
         fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
       };
     } else {
@@ -141,7 +143,6 @@ async function loadProjectData(): Promise<PerformanceTestItem> {
         action: Actions.InitialLoad,
         itemsAffectedByAction: 0,
         totalItems: 0,
-        timeToComplete: 0,
         fileSize: 0,
       };
     }
@@ -152,7 +153,6 @@ async function loadProjectData(): Promise<PerformanceTestItem> {
       action: Actions.InitialLoad,
       itemsAffectedByAction: 0,
       totalItems: 0,
-      timeToComplete: 0,
       fileSize: 0,
     };
   }
@@ -164,14 +164,17 @@ async function putProject({
 }: {
   projectsToPut: Projects;
   previousProjectState: Projects;
-}): Promise<Projects> {
+}): Promise<ItemMetadata> {
   /**
    * For POC
    * ignoring extra steps for backing up the projects.json
    * incase there is a failure and the file becomes corrupt.
    * In the final version, wrap in a try/catch and restore the backup
    */
-  const newProjectState = { ...previousProjectState, ...projectsToPut };
+  const newProjectState: Projects = {
+    ...previousProjectState,
+    ...projectsToPut,
+  };
   await writeFile(
     await join(VISLIT_DATA, PROJECTS_JSON),
     JSON.stringify(newProjectState),
@@ -179,19 +182,17 @@ async function putProject({
       dir: BaseDirectory.AppData,
     }
   );
-
-  // if the operation was fully successful, then we know that the
-  // data written to json was:
-  // TODO:
-  // return:
-  // {
-  // project state
-  // how long it took to run the function
-  // how many projects were added
-  // }
-  return newProjectState;
+  return {
+    projects: newProjectState,
+    action: Actions.AddProject,
+    itemsAffectedByAction: Object.keys(newProjectState).length,
+    totalItems:
+      Object.keys(previousProjectState || {}).length +
+      Object.keys(newProjectState).length,
+    fileSize: roundUpToTwoDecimalPlaces(getFileSize(newProjectState)),
+  };
 }
 
 export { measurePerformance, loadProjectData, putProject };
 
-export type { PerformanceTestItem, Project, Projects };
+export type { ItemMetadataPerformance, Project, Projects };
