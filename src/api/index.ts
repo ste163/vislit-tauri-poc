@@ -41,6 +41,7 @@ type Projects = Record<string, Project> | null;
 enum Actions {
   InitialLoad = "Initial Load",
   AddProject = "Add Project",
+  DeleteProject = "Delete Project",
   AddProgress = "Add Progress",
 }
 
@@ -112,17 +113,28 @@ async function measurePerformance(
   };
 }
 
+async function getAllProjects(): Promise<Projects> {
+  try {
+    const contents = await readTextFile(
+      await join(VISLIT_DATA, PROJECTS_JSON),
+      {
+        dir: BaseDirectory.AppData,
+      }
+    );
+    return JSON.parse(contents) as Projects;
+  } catch (error) {
+    console.log("getAllProjects - ", error);
+    return null;
+  }
+}
+
 async function loadProjectData(): Promise<ItemMetadata> {
   try {
     const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
     console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
     const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
     if (doesVislitDataExist) {
-      const contents = await readTextFile(
-        await join(VISLIT_DATA, PROJECTS_JSON),
-        { dir: BaseDirectory.AppData }
-      );
-      const projects = JSON.parse(contents) as Projects;
+      const projects = await getAllProjects();
       return {
         projects,
         action: Actions.InitialLoad,
@@ -169,8 +181,13 @@ async function putProject({
    * For POC
    * ignoring extra steps for backing up the projects.json
    * incase there is a failure and the file becomes corrupt.
-   * In the final version, wrap in a try/catch and restore the backup
+   * In the final version, wrap in a try/catch and restore the backup.
+   *
+   * Also adding extra unneeded data for the POC and performance measurements.
+   * Reading the raw JSON is extremely fast, so I do not, and should not, pass in previous state
    */
+  // NOTE:
+  // Because getAllProjects is very fast, do not need to pass in previous project state
   const newProjectState: Projects = {
     ...previousProjectState,
     ...projectsToPut,
@@ -191,6 +208,35 @@ async function putProject({
   };
 }
 
-export { measurePerformance, loadProjectData, putProject };
+async function deleteProject(id: string): Promise<ItemMetadata> {
+  /**
+   * For POC
+   * ignoring extra steps for backing up the projects.json
+   * incase there is a failure and the file becomes corrupt.
+   * In the final version, wrap in a try/catch and restore the backup
+   *
+   * Also adding extra unneeded data for the POC and performance measurements.
+   * Reading the raw JSON is extremely fast, so I do not, and should not, pass in previous state
+   */
+  // NOTE: reading full project state here, because it loads EXTREMELY quickly
+  const projects = await getAllProjects();
+  if (projects) delete projects[id];
+  await writeFile(
+    await join(VISLIT_DATA, PROJECTS_JSON),
+    JSON.stringify(projects),
+    {
+      dir: BaseDirectory.AppData,
+    }
+  );
+  return {
+    projects,
+    action: Actions.DeleteProject,
+    itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
+    totalItems: projects ? Object.keys(projects).length : 0,
+    fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
+  };
+}
+
+export { measurePerformance, loadProjectData, putProject, deleteProject };
 
 export type { ItemMetadataPerformance, Project, Projects };

@@ -7,6 +7,7 @@ import {
   measurePerformance,
   loadProjectData,
   putProject,
+  deleteProject,
 } from "./api";
 import { computed, onMounted, ref, watch } from "vue";
 /**
@@ -74,14 +75,26 @@ async function addProject() {
   }
 }
 
-// pass in id
-async function deleteProject() {
-  console.log("DELETE PROJECT");
+async function removeProject(id: string | undefined) {
+  try {
+    if (!isOperatingOnProject.value && id) {
+      isOperatingOnProject.value = true;
+      const response = await measurePerformance(
+        async () => await deleteProject(id)
+      );
+      projects.value = response.projects || null;
+      mostRecentOperation.value = response;
+      selectedProject.value = null;
+    }
+  } catch (error) {
+    console.log("removeProject error - ", error);
+  } finally {
+    isOperatingOnProject.value = false;
+  }
 }
 
-// pass in id
-async function addProgress() {
-  console.log("ADD PROGRESS");
+async function addProgress(id: string | undefined) {
+  console.log("ADD PROGRESS", id);
 }
 
 function selectProject(id: string) {
@@ -173,7 +186,7 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
 
           <div class="d-flex">
             <v-btn
-              @click="deleteProject"
+              @click="() => removeProject(selectedProject?.id)"
               class="mx-2 my-2"
               :loading="isOperatingOnProject"
               :disabled="selectedProject ? false : true"
@@ -182,7 +195,7 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
             </v-btn>
 
             <v-btn
-              @click="addProgress"
+              @click="() => addProgress(selectedProject?.id)"
               class="mx-2 my-2"
               :loading="isAddingProgress"
               :disabled="selectedProject ? false : true"
@@ -194,33 +207,25 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
         <v-alert class="mt-5 d-flex" compact color="info">
           <div v-if="projects" class="d-flex flex-column">
             <div class="d-flex flex-column mb-4">
-              <h4>Performance Data</h4>
-              <div class="text-caption">
-                (Adding and removing projects or progress updates dashboard)
-              </div>
-
-              <div class="my-2">
-                <h5>Project count:</h5>
-                {{ Object.keys(projects).length }}
-              </div>
-
-              <v-divider class="my-4"></v-divider>
-
-              <h4 class="mt-2">Last operation</h4>
-
+              <h4 class="my-2">Last operation</h4>
               <div class="d-flex">
+                <div class="mr-4">
+                  <h5>Project count</h5>
+                  {{ Object.keys(projects).length }}
+                </div>
+                <v-divider vertical class="mx-4" />
                 <div>
-                  <h5>projects.json file size:</h5>
+                  <h5>projects.json file size</h5>
                   ~ {{ mostRecentOperation?.fileSize }} mb
                 </div>
-
-                <div class="mx-4">
-                  <h5>Last operation:</h5>
+                <v-divider vertical class="mx-4" />
+                <div>
+                  <h5>Last operation</h5>
                   {{ mostRecentOperation?.action }}
                 </div>
-
+                <v-divider vertical class="mx-4" />
                 <div>
-                  <h5>Time to complete last operation:</h5>
+                  <h5>Time to complete last operation</h5>
                   {{ mostRecentOperation?.timeToComplete }} seconds
                 </div>
               </div>
@@ -229,7 +234,6 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
             <v-divider class="my-4"></v-divider>
 
             <h4 class="mb-2">Performance per operation</h4>
-            <!-- TODO: add pagination -->
             <v-table density="compact" fixed-header>
               <thead>
                 <tr>
