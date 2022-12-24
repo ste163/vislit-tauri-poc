@@ -10,6 +10,15 @@ import {
 } from "@tauri-apps/api/fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 
+// TODO:
+// separate the functions out of index into:
+// projects.ts
+// progress.ts
+// startup.ts
+// helpers.ts
+// performance.ts
+// types.ts
+
 /**
  * NOTE
  * ideally, all interactions with the rust api would happen
@@ -78,7 +87,7 @@ interface ItemMetadataPerformance extends ItemMetadata {
 /**
  * For easier rendering, round up to nearest tenth.
  * Would be best to do this as a computed prop,
- * but doesn't matter as this is just testing
+ * but doesn't matter as this is a POC
  */
 function roundUpToTwoDecimalPlaces(number: number) {
   return Math.round(number * 100) / 100;
@@ -86,7 +95,7 @@ function roundUpToTwoDecimalPlaces(number: number) {
 
 /**
  * Performance.now() returns milliseconds.
- * For easier reading, use to convert to seconds
+ * For easier reading, use this to convert to seconds
  */
 function convertMillisecondsToSeconds(number: number) {
   return number / 1000;
@@ -129,6 +138,11 @@ async function measurePerformance(
   };
 }
 
+/**
+ * Non-exported helper for quickly getting projects
+ */
+// NOTE: may be better to have this throw an error instead of returning null
+// that way it ALWAYS returns projects
 async function getAllProjects(): Promise<Projects> {
   try {
     const contents = await readTextFile(
@@ -186,13 +200,7 @@ async function loadProjectData(): Promise<ItemMetadata> {
   }
 }
 
-async function putProject({
-  projectsToPut,
-  previousProjectState,
-}: {
-  projectsToPut: Projects;
-  previousProjectState: Projects;
-}): Promise<ItemMetadata> {
+async function putProject(project: Project): Promise<ItemMetadata> {
   /**
    * For POC
    * ignoring extra steps for backing up the projects.json
@@ -200,13 +208,25 @@ async function putProject({
    * In the final version, wrap in a try/catch and restore the backup.
    *
    * Also adding extra unneeded data for the POC and performance measurements.
-   * Reading the raw JSON is extremely fast, so I do not, and should not, pass in previous state
    */
-  // NOTE:
-  // Because getAllProjects is very fast, do not need to pass in previous project state
+  const projects = await getAllProjects();
+
+  const projectExists = projects ? projects[project.id] : false;
+
+  if (projectExists) {
+    console.log("attempting to update project - not implemented in POC");
+    // doing nothing here because I'm only ever doing POST for POC
+    // and not UPDATE
+    // not returning anything here either
+  }
+
+  // TODO:
+  // assuming that all projects are CREATE
+  // so create the directory structure and JSON files for a project
+
   const newProjectState: Projects = {
-    ...previousProjectState,
-    ...projectsToPut,
+    ...projects,
+    [project.id]: project,
   };
   await writeFile(
     await join(VISLIT_DATA, PROJECTS_JSON),
@@ -232,9 +252,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
    * In the final version, wrap in a try/catch and restore the backup
    *
    * Also adding extra unneeded data for the POC and performance measurements.
-   * Reading the raw JSON is extremely fast, so I do not, and should not, pass in previous state
    */
-  // NOTE: reading full project state here, because it loads EXTREMELY quickly
   const projects = await getAllProjects();
   if (projects) delete projects[id];
   await writeFile(

@@ -17,9 +17,15 @@ import { computed, onMounted, ref, watch } from "vue";
  */
 import { faker } from "@faker-js/faker/locale/en";
 
-// TODO:
-// setup basic unit tests to see how easy it is to work
-// with mocking tauri APIs
+/**
+ * TODO
+ * - Add Putting 30 days worth of Progress
+ * - Adding putting 1 day of Progress
+ * - Add Removing 1 Progress
+ * - Rendering in table for '~ 1 year, 4 months'
+ * - Add TipTap and test creating large HTML files (to test read/write/delete performance on full projects)
+ * - Super basic unit tests for UI and API and mocking Tauri APIs
+ */
 
 const projects = ref<Projects>(null);
 const isOperatingOnProject = ref<boolean>(false);
@@ -45,25 +51,19 @@ async function addProject() {
       isOperatingOnProject.value = true;
       const id = faker.datatype.uuid();
       const project = {
-        [id]: {
-          id,
-          title: faker.lorem.sentence(2),
-          description: faker.lorem.sentences(3),
-          typeId: faker.datatype.uuid(),
-          type: "testType",
-          goal: "testGoal",
-          completed: false,
-          archived: false,
-          dateCreated: faker.date.past(),
-          dateModified: faker.date.past(),
-        },
+        id,
+        title: faker.lorem.sentence(2),
+        description: faker.lorem.sentences(3),
+        typeId: faker.datatype.uuid(),
+        type: "testType",
+        goal: "testGoal",
+        completed: false,
+        archived: false,
+        dateCreated: faker.date.past(),
+        dateModified: faker.date.past(),
       };
       const response = await measurePerformance(
-        async () =>
-          await putProject({
-            projectsToPut: project,
-            previousProjectState: projects.value,
-          })
+        async () => await putProject(project)
       );
       projects.value = response.projects || null;
       mostRecentOperation.value = response;
@@ -221,19 +221,8 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
         <v-alert class="mt-5 d-flex" compact color="info">
           <div v-if="projects" class="d-flex flex-column">
             <div class="d-flex flex-column mb-4">
-              <h4 class="my-2">Last operation</h4>
               <div class="d-flex">
                 <div class="mr-4">
-                  <h5>Project count</h5>
-                  {{ Object.keys(projects).length }}
-                </div>
-                <v-divider vertical class="mx-4" />
-                <div>
-                  <h5>projects.json file size</h5>
-                  ~ {{ mostRecentOperation?.fileSize }} mb
-                </div>
-                <v-divider vertical class="mx-4" />
-                <div>
                   <h5>Last operation</h5>
                   {{ mostRecentOperation?.action }}
                 </div>
@@ -241,6 +230,16 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                 <div>
                   <h5>Time to complete last operation</h5>
                   {{ mostRecentOperation?.timeToComplete }} seconds
+                </div>
+                <v-divider vertical class="mx-4" />
+                <div>
+                  <h5>Total Project count</h5>
+                  {{ Object.keys(projects).length }}
+                </div>
+                <v-divider vertical class="mx-4" />
+                <div>
+                  <h5>projects.json file size</h5>
+                  ~ {{ mostRecentOperation?.fileSize }} mb
                 </div>
               </div>
             </div>
