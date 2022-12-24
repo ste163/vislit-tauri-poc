@@ -23,7 +23,7 @@ import { faker } from "@faker-js/faker/locale/en";
 
 const projects = ref<Projects>(null);
 const isOperatingOnProject = ref<boolean>(false);
-const isAddingProgress = ref<boolean>(false);
+const isOperatingOnProgress = ref<boolean>(false);
 const selectedProject = ref<Project | null>(null);
 
 /**
@@ -95,6 +95,20 @@ async function removeProject(id: string | undefined) {
 
 async function addProgress(id: string | undefined) {
   console.log("ADD PROGRESS", id);
+  try {
+    if (!isOperatingOnProgress.value) {
+      isOperatingOnProgress.value = true;
+      // TODO:
+      // need to do some tests on working with dates on progress
+      //
+      // create 30 fake progress
+      // put progress
+    }
+  } catch (error) {
+    console.log("addProgress - ", error);
+  } finally {
+    isOperatingOnProgress.value = false;
+  }
 }
 
 function selectProject(id: string) {
@@ -197,7 +211,7 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
             <v-btn
               @click="() => addProgress(selectedProject?.id)"
               class="mx-2 my-2"
-              :loading="isAddingProgress"
+              :loading="isOperatingOnProgress"
               :disabled="selectedProject ? false : true"
             >
               Add month of Progress

@@ -36,6 +36,22 @@ interface Project {
   dateModified: Date;
 }
 
+// maybe this would be good?
+// '2020-01-01': {
+//   ...Progress
+// }
+
+interface Progress {
+  date: Date; // or should this be in 2020-01-01 without time stamp? That way, the key is the date. But then we don't have the iso timestamp?
+  projectId: string;
+  goalId: string;
+  count: number; // word count
+  edited: boolean;
+  proofread: boolean;
+  revised: boolean;
+  completed: boolean;
+}
+
 type Projects = Record<string, Project> | null;
 
 enum Actions {
@@ -47,7 +63,7 @@ enum Actions {
 
 interface ItemMetadata {
   projects?: Projects;
-  progress?: any; // TODO: add progress type
+  progress?: Progress;
   action: Actions;
   itemsAffectedByAction: number;
   totalItems: number;
@@ -237,6 +253,17 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
   };
 }
 
-export { measurePerformance, loadProjectData, putProject, deleteProject };
+async function putProgress(progress: Progress): Promise<ItemMetadata> {
+  console.log("PUT", progress);
+  // return progress and estimate on how many years
+}
 
-export type { ItemMetadataPerformance, Project, Projects };
+export {
+  measurePerformance,
+  loadProjectData,
+  putProject,
+  deleteProject,
+  putProgress,
+};
+
+export type { ItemMetadataPerformance, Project, Projects, Progress };
