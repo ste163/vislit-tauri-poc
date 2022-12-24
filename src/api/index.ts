@@ -1,23 +1,26 @@
 // TODO:
 // once I figure out which fs and path APIs I need
 // add those to the allow-list
+import { writeFile, BaseDirectory } from "@tauri-apps/api/fs";
+import { join } from "@tauri-apps/api/path";
+import { initializeApi } from "./init";
+import { measurePerformance } from "./performance";
+import { getAllProjects, getFileSize } from "./helpers";
 import {
-  exists,
-  createDir,
-  writeFile,
-  BaseDirectory,
-  readTextFile,
-} from "@tauri-apps/api/fs";
-import { appDataDir, join } from "@tauri-apps/api/path";
+  VISLIT_DATA,
+  PROJECTS_JSON,
+  Actions,
+  Project,
+  Projects,
+  Progress,
+  ItemMetadata,
+  ItemMetadataPerformance,
+} from "./types";
 
 // TODO:
 // separate the functions out of index into:
 // projects.ts
 // progress.ts
-// startup.ts
-// helpers.ts
-// performance.ts
-// types.ts
 
 /**
  * NOTE
@@ -28,177 +31,6 @@ import { appDataDir, join } from "@tauri-apps/api/path";
  *
  * This /api would need to be pure JS without any knowledge of Vue
  */
-
-const VISLIT_DATA = "vislit-data";
-const PROJECTS_JSON = "projects.json";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  typeId: string;
-  type: any;
-  goal: any;
-  completed: boolean;
-  archived: boolean;
-  dateCreated: Date;
-  dateModified: Date;
-}
-
-// maybe this would be good?
-// '2020-01-01': {
-//   ...Progress
-// }
-
-interface Progress {
-  date: Date; // or should this be in 2020-01-01 without time stamp? That way, the key is the date. But then we don't have the iso timestamp?
-  projectId: string;
-  goalId: string;
-  count: number; // word count
-  edited: boolean;
-  proofread: boolean;
-  revised: boolean;
-  completed: boolean;
-}
-
-type Projects = Record<string, Project> | null;
-
-enum Actions {
-  InitialLoad = "Initial Load",
-  AddProject = "Add Project",
-  DeleteProject = "Delete Project",
-  AddProgress = "Add Progress",
-}
-
-interface ItemMetadata {
-  projects?: Projects;
-  progress?: Progress;
-  action: Actions;
-  itemsAffectedByAction: number;
-  totalItems: number;
-  fileSize: number;
-  yearsWorthOfProgress?: number;
-}
-
-interface ItemMetadataPerformance extends ItemMetadata {
-  timeToComplete: number;
-}
-
-/**
- * For easier rendering, round up to nearest tenth.
- * Would be best to do this as a computed prop,
- * but doesn't matter as this is a POC
- */
-function roundUpToTwoDecimalPlaces(number: number) {
-  return Math.round(number * 100) / 100;
-}
-
-/**
- * Performance.now() returns milliseconds.
- * For easier reading, use this to convert to seconds
- */
-function convertMillisecondsToSeconds(number: number) {
-  return number / 1000;
-}
-
-/**
- * Gets the estimated file size of a json string object.
- * Because storing everything as JSON, this should be
- * pretty accurate.
- * Returns size in megabytes or 0 if an error.
- */
-function getFileSize(any: any) {
-  try {
-    const length = new TextEncoder().encode(JSON.stringify(any)).length;
-    const sizeInKiloBytes = length / 1024;
-    const sizeInMegaBytes = sizeInKiloBytes / 1024;
-    return sizeInMegaBytes;
-  } catch (error) {
-    console.log("error getting file size for", any);
-    console.error(error);
-    return 0;
-  }
-}
-
-/**
- * Wrapper function that takes any async function
- * and returns the time in seconds, rounded up to 2 decimal points
- */
-async function measurePerformance(
-  fn: (any?: any) => Promise<any>
-): Promise<ItemMetadataPerformance> {
-  const start = performance.now();
-  const result = await fn();
-  const end = performance.now();
-  return {
-    ...result,
-    timeToComplete: roundUpToTwoDecimalPlaces(
-      convertMillisecondsToSeconds(end - start)
-    ),
-  };
-}
-
-/**
- * Non-exported helper for quickly getting projects
- */
-// NOTE: may be better to have this throw an error instead of returning null
-// that way it ALWAYS returns projects
-async function getAllProjects(): Promise<Projects> {
-  try {
-    const contents = await readTextFile(
-      await join(VISLIT_DATA, PROJECTS_JSON),
-      {
-        dir: BaseDirectory.AppData,
-      }
-    );
-    return JSON.parse(contents) as Projects;
-  } catch (error) {
-    console.log("getAllProjects - ", error);
-    return null;
-  }
-}
-
-async function loadProjectData(): Promise<ItemMetadata> {
-  try {
-    const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
-    console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
-    const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
-    if (doesVislitDataExist) {
-      const projects = await getAllProjects();
-      return {
-        projects,
-        action: Actions.InitialLoad,
-        itemsAffectedByAction: 0,
-        totalItems: projects ? Object.keys(projects).length : 0,
-        fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
-      };
-    } else {
-      await createDir(VISLIT_DATA, {
-        dir: BaseDirectory.AppData,
-        recursive: true,
-      });
-      await writeFile(await join(VISLIT_DATA, PROJECTS_JSON), "{}", {
-        dir: BaseDirectory.AppData,
-      });
-      return {
-        projects: null,
-        action: Actions.InitialLoad,
-        itemsAffectedByAction: 0,
-        totalItems: 0,
-        fileSize: 0,
-      };
-    }
-  } catch (error) {
-    console.error(error);
-    return {
-      projects: null,
-      action: Actions.InitialLoad,
-      itemsAffectedByAction: 0,
-      totalItems: 0,
-      fileSize: 0,
-    };
-  }
-}
 
 async function putProject(project: Project): Promise<ItemMetadata> {
   /**
@@ -240,7 +72,7 @@ async function putProject(project: Project): Promise<ItemMetadata> {
     action: Actions.AddProject,
     itemsAffectedByAction: Object.keys(newProjectState).length,
     totalItems: Object.keys(newProjectState).length,
-    fileSize: roundUpToTwoDecimalPlaces(getFileSize(newProjectState)),
+    fileSize: getFileSize(newProjectState),
   };
 }
 
@@ -267,7 +99,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
     action: Actions.DeleteProject,
     itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
     totalItems: projects ? Object.keys(projects).length : 0,
-    fileSize: roundUpToTwoDecimalPlaces(getFileSize(projects)),
+    fileSize: getFileSize(projects),
   };
 }
 
@@ -278,7 +110,7 @@ async function putProgress(progress: Progress): Promise<ItemMetadata> {
 
 export {
   measurePerformance,
-  loadProjectData,
+  initializeApi,
   putProject,
   deleteProject,
   putProgress,

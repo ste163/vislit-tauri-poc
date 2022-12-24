@@ -5,7 +5,7 @@ import {
   Project,
   Projects,
   measurePerformance,
-  loadProjectData,
+  initializeApi,
   putProject,
   deleteProject,
 } from "./api";
@@ -126,7 +126,7 @@ function selectProject(id: string) {
  */
 
 onMounted(async () => {
-  const result = await measurePerformance(loadProjectData);
+  const result = await measurePerformance(initializeApi);
   initialLoadData.value = result;
   mostRecentOperation.value = result;
   projects.value = result.projects || null;
