@@ -6,14 +6,7 @@ import {
   join,
 } from "./allowed-tauri-apis";
 import { getAllProjects, getFileSize } from "./helpers";
-import {
-  Project,
-  ItemMetadata,
-  Projects,
-  VISLIT_DATA,
-  PROJECTS_JSON,
-  Actions,
-} from "./types";
+import { Project, ItemMetadata, Projects, Paths, Actions } from "./types";
 
 /**
  * NOTE: (After POC)
@@ -49,26 +42,29 @@ async function putProject(project: Project): Promise<ItemMetadata> {
   /**
    * New project, create directory structure and files
    */
-  await createDir(await join(VISLIT_DATA, "projects", project.id), {
+  await createDir(await join(Paths.VislitData, Paths.Projects, project.id), {
     dir: BaseDirectory.AppData,
     recursive: true,
   });
 
   await createDir(
-    await join(VISLIT_DATA, "projects", project.id, "documents"),
+    await join(Paths.VislitData, Paths.Projects, project.id, "documents"),
     {
       dir: BaseDirectory.AppData,
       recursive: true,
     }
   );
 
-  await createDir(await join(VISLIT_DATA, "projects", project.id, "notes"), {
-    dir: BaseDirectory.AppData,
-    recursive: true,
-  });
+  await createDir(
+    await join(Paths.VislitData, Paths.Projects, project.id, "notes"),
+    {
+      dir: BaseDirectory.AppData,
+      recursive: true,
+    }
+  );
 
   await writeFile(
-    await join(VISLIT_DATA, "projects", project.id, "goals.json"),
+    await join(Paths.VislitData, Paths.Projects, project.id, "goals.json"),
     JSON.stringify({}),
     {
       dir: BaseDirectory.AppData,
@@ -76,7 +72,7 @@ async function putProject(project: Project): Promise<ItemMetadata> {
   );
 
   await writeFile(
-    await join(VISLIT_DATA, "projects", project.id, "progress.json"),
+    await join(Paths.VislitData, Paths.Projects, project.id, "progress.json"),
     JSON.stringify({}),
     {
       dir: BaseDirectory.AppData,
@@ -84,7 +80,7 @@ async function putProject(project: Project): Promise<ItemMetadata> {
   );
 
   await writeFile(
-    await join(VISLIT_DATA, "projects", project.id, "notes.json"),
+    await join(Paths.VislitData, Paths.Projects, project.id, "notes.json"),
     JSON.stringify({}),
     {
       dir: BaseDirectory.AppData,
@@ -113,7 +109,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
 
   delete projects?.[id];
 
-  await removeDir(await join(VISLIT_DATA, "projects", id), {
+  await removeDir(await join(Paths.VislitData, Paths.Projects, id), {
     dir: BaseDirectory.AppData,
     recursive: true,
   });
@@ -137,7 +133,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
 // set any data storage location they want
 async function writeProjectState(state: Projects): Promise<void> {
   await writeFile(
-    await join(VISLIT_DATA, PROJECTS_JSON),
+    await join(Paths.VislitData, Paths.projectsJson),
     JSON.stringify(state),
     {
       dir: BaseDirectory.AppData,

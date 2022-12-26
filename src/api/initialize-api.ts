@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "./allowed-tauri-apis";
 import { getAllProjects, getFileSize } from "./helpers";
-import { Actions, ItemMetadata, PROJECTS_JSON, VISLIT_DATA } from "./types";
+import { Paths, Actions, ItemMetadata } from "./types";
 
 /**
  * Initializes the API by either creating directories and files
@@ -15,7 +15,7 @@ import { Actions, ItemMetadata, PROJECTS_JSON, VISLIT_DATA } from "./types";
  */
 async function initializeApi(): Promise<ItemMetadata> {
   try {
-    const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
+    const VISLIT_DATA_PATH = await join(await appDataDir(), Paths.VislitData);
     console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
     const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
     /**
@@ -40,11 +40,11 @@ async function initializeApi(): Promise<ItemMetadata> {
        * to file paths, might be best to follow the Class-based structure with dependency injection
        * like the Electron version of Vislit
        */
-      await createDir(VISLIT_DATA, {
+      await createDir(Paths.VislitData, {
         dir: BaseDirectory.AppData,
         recursive: true,
       });
-      await writeFile(await join(VISLIT_DATA, PROJECTS_JSON), "{}", {
+      await writeFile(await join(Paths.VislitData, Paths.projectsJson), "{}", {
         dir: BaseDirectory.AppData,
       });
       return {

@@ -1,10 +1,9 @@
-// TODO/NOTE:
-// these might be best as an enum:
-// Paths.ProjectsJson
-// Paths.Projects
-// etc
-const VISLIT_DATA = "vislit-data";
-const PROJECTS_JSON = "projects.json";
+enum Paths {
+  VislitData = "vislit-data",
+  Projects = "projects",
+  projectsJson = "projects.json",
+  ProgressJson = "progress.json",
+}
 
 interface Project {
   id: string;
@@ -19,13 +18,19 @@ interface Project {
   dateModified: Date;
 }
 
-// maybe this would be good?
-// '2020-01-01': {
-//   ...Progress
-// }
-
+// would potentially be best to ALWAYS store dates using the client's timezone
+// and then rendering and checking based on that.
+// so then there is always the right amount of data. It may fix the issues
+// of a user
+/**
+ * Progress object is
+ * [new Date()]: { Progress }
+ * and then when we check the Add/Update
+ * we check it based on if there is any date for this day
+ * regardless of timezone
+ */
 interface Progress {
-  date: Date; // or should this be in 2020-01-01 without time stamp? That way, the key is the date. But then we don't have the iso timestamp?
+  date: Date;
   projectId: string;
   goalId: string;
   count: number; // word count
@@ -34,6 +39,9 @@ interface Progress {
   revised: boolean;
   completed: boolean;
 }
+
+// new Date.toString() will probably be best, but can play around with it
+type KeyedProgress = Record<string, Progress> | null;
 
 type Projects = Record<string, Project> | null;
 
@@ -58,11 +66,12 @@ interface ItemMetadataPerformance extends ItemMetadata {
   timeToComplete: number;
 }
 
-export { Actions, VISLIT_DATA, PROJECTS_JSON };
+export { Paths, Actions };
 export type {
   Project,
   Projects,
   Progress,
+  KeyedProgress,
   ItemMetadata,
   ItemMetadataPerformance,
 };
