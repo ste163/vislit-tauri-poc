@@ -1,15 +1,27 @@
 import { initializeApi } from "./initialize-api";
 import { measurePerformance } from "./performance";
 import { putProject, deleteProject } from "./projects";
-import { putProgress } from "./progress";
-import { Project, Projects, Progress, ItemMetadataPerformance } from "./types";
+import { createProgress } from "./progress";
+import {
+  Project,
+  Projects,
+  Progress,
+  KeyedProgress,
+  ItemMetadataPerformance,
+} from "./types";
 
 export {
   measurePerformance,
   initializeApi,
   putProject,
   deleteProject,
-  putProgress,
+  createProgress,
 };
 
-export type { ItemMetadataPerformance, Project, Projects, Progress };
+export type {
+  ItemMetadataPerformance,
+  Project,
+  Projects,
+  Progress,
+  KeyedProgress,
+};

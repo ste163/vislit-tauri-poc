@@ -44,7 +44,7 @@ async function initializeApi(): Promise<ItemMetadata> {
         dir: BaseDirectory.AppData,
         recursive: true,
       });
-      await writeFile(await join(Paths.VislitData, Paths.projectsJson), "{}", {
+      await writeFile(await join(Paths.VislitData, Paths.ProjectsJson), "{}", {
         dir: BaseDirectory.AppData,
       });
       return {

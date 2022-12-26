@@ -72,7 +72,12 @@ async function putProject(project: Project): Promise<ItemMetadata> {
   );
 
   await writeFile(
-    await join(Paths.VislitData, Paths.Projects, project.id, "progress.json"),
+    await join(
+      Paths.VislitData,
+      Paths.Projects,
+      project.id,
+      Paths.ProgressJson
+    ),
     JSON.stringify({}),
     {
       dir: BaseDirectory.AppData,
@@ -133,7 +138,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
 // set any data storage location they want
 async function writeProjectState(state: Projects): Promise<void> {
   await writeFile(
-    await join(Paths.VislitData, Paths.projectsJson),
+    await join(Paths.VislitData, Paths.ProjectsJson),
     JSON.stringify(state),
     {
       dir: BaseDirectory.AppData,

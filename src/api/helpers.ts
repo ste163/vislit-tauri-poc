@@ -1,12 +1,10 @@
 import { BaseDirectory, join, readTextFile } from "./allowed-tauri-apis";
 import { Paths, Projects } from "./types";
 
-/**
- * Non-exported helper for quickly getting projects
- */
+// TODO: move out of helpers
 async function getAllProjects(): Promise<Projects> {
   const contents = await readTextFile(
-    await join(Paths.VislitData, Paths.projectsJson),
+    await join(Paths.VislitData, Paths.ProjectsJson),
     {
       dir: BaseDirectory.AppData,
     }

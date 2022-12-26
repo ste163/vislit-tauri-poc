@@ -1,7 +1,7 @@
 enum Paths {
   VislitData = "vislit-data",
   Projects = "projects",
-  projectsJson = "projects.json",
+  ProjectsJson = "projects.json",
   ProgressJson = "progress.json",
 }
 
@@ -54,7 +54,7 @@ enum Actions {
 
 interface ItemMetadata {
   projects?: Projects;
-  progress?: Progress;
+  progress?: KeyedProgress;
   action: Actions;
   itemsAffectedByAction: number;
   totalItems: number;

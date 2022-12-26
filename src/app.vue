@@ -4,8 +4,11 @@ import {
   ItemMetadataPerformance,
   Project,
   Projects,
+  Progress,
+  KeyedProgress,
   measurePerformance,
   initializeApi,
+  createProgress,
   putProject,
   deleteProject,
 } from "./api";
@@ -93,13 +96,33 @@ async function removeProject(id: string | undefined) {
   }
 }
 
-async function addMonthOfProgress(id: string | undefined) {
-  console.log("ADD MONTH", id);
+async function addMonthOfProgress(projectId: string | undefined) {
   try {
-    if (!isOperatingOnProgress.value) {
+    if (projectId && !isOperatingOnProgress.value) {
       isOperatingOnProgress.value = true;
-      // create 30 fake progress
-      // put progress
+      let monthOfProgress: KeyedProgress = {};
+      for await (let _count of Array(30).keys()) {
+        const date = faker.date.past();
+        const progress: Progress = {
+          date,
+          projectId: selectedProject.value?.id || faker.datatype.uuid(),
+          goalId: faker.datatype.uuid(),
+          count: faker.datatype.number(),
+          edited: faker.datatype.boolean(),
+          proofread: faker.datatype.boolean(),
+          revised: faker.datatype.boolean(),
+          completed: faker.datatype.boolean(),
+        };
+        monthOfProgress = {
+          ...monthOfProgress,
+          [date.toISOString()]: progress,
+        };
+      }
+      const response = await measurePerformance(
+        async () =>
+          await createProgress({ projectId, progress: monthOfProgress })
+      );
+      mostRecentOperation.value = response;
     }
   } catch (error) {
     console.log("addMonthOfProgress - ", error);
