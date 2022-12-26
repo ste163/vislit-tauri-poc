@@ -5,21 +5,11 @@ import { Projects, PROJECTS_JSON, VISLIT_DATA } from "./types";
 /**
  * Non-exported helper for quickly getting projects
  */
-// NOTE: may be better to have this throw an error instead of returning null
-// that way it ALWAYS returns projects
 async function getAllProjects(): Promise<Projects> {
-  try {
-    const contents = await readTextFile(
-      await join(VISLIT_DATA, PROJECTS_JSON),
-      {
-        dir: BaseDirectory.AppData,
-      }
-    );
-    return JSON.parse(contents) as Projects;
-  } catch (error) {
-    console.log("getAllProjects - ", error);
-    return null;
-  }
+  const contents = await readTextFile(await join(VISLIT_DATA, PROJECTS_JSON), {
+    dir: BaseDirectory.AppData,
+  });
+  return JSON.parse(contents) as Projects;
 }
 
 /**

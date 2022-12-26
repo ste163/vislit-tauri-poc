@@ -1,9 +1,9 @@
-import { ItemMetadataPerformance } from ".";
-import { ItemMetadata } from "./types";
+import { ItemMetadataPerformance, ItemMetadata } from "./types";
 
 /**
  * Wrapper function that takes any async function
- * and returns the time in seconds, rounded up to 2 decimal points
+ * and returns the time in seconds and estimated file size,
+ * rounded up to 2 decimal points
  */
 async function measurePerformance(
   fn: (any?: any) => Promise<ItemMetadata>
@@ -23,7 +23,7 @@ async function measurePerformance(
 
 /**
  * Performance.now() returns milliseconds.
- * For easier reading, use this to convert to seconds
+ * For easier rendering, use this to convert to seconds
  */
 const convertMillisecondsToSeconds = (number: number) => number / 1000;
 

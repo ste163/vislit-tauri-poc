@@ -140,6 +140,14 @@ watch(mostRecentOperation, (mostRecentOperation) => {
     operationLog.value = [...operationLog.value, mostRecentOperation];
 });
 
+watch(selectedProject, (projectState) => {
+  if (projects.value && !projectState) {
+    // if no project is selected, then select first
+    // (used to select first project if you delete a project)
+    selectedProject.value = Object.values(projects.value)[0];
+  }
+});
+
 /**
  * Test invoking custom Rust functions not included in the JS api.
  * This allows me to write anything I want and pass JS data to backend.
