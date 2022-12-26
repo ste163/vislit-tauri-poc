@@ -93,23 +93,24 @@ async function removeProject(id: string | undefined) {
   }
 }
 
-async function addProgress(id: string | undefined) {
-  console.log("ADD PROGRESS", id);
+async function addMonthOfProgress(id: string | undefined) {
+  console.log("ADD MONTH", id);
   try {
     if (!isOperatingOnProgress.value) {
       isOperatingOnProgress.value = true;
-      // TODO:
-      // need to do some tests on working with dates on progress
-      //
       // create 30 fake progress
       // put progress
     }
   } catch (error) {
-    console.log("addProgress - ", error);
+    console.log("addMonthOfProgress - ", error);
   } finally {
     isOperatingOnProgress.value = false;
   }
 }
+
+// TODO:
+// add 1 progress
+// remove 1 progress
 
 function selectProject(id: string) {
   if (projects.value) selectedProject.value = projects.value[id];
@@ -217,7 +218,7 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
             </v-btn>
 
             <v-btn
-              @click="() => addProgress(selectedProject?.id)"
+              @click="() => addMonthOfProgress(selectedProject?.id)"
               class="mx-2 my-2"
               :loading="isOperatingOnProgress"
               :disabled="selectedProject ? false : true"
