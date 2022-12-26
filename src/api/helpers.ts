@@ -1,5 +1,4 @@
-import { readTextFile, BaseDirectory } from "@tauri-apps/api/fs";
-import { join } from "@tauri-apps/api/path";
+import { BaseDirectory, join, readTextFile } from "./allowed-tauri-apis";
 import { Projects, PROJECTS_JSON, VISLIT_DATA } from "./types";
 
 /**

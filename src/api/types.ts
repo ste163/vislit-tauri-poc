@@ -1,3 +1,8 @@
+// TODO/NOTE:
+// these might be best as an enum:
+// Paths.ProjectsJson
+// Paths.Projects
+// etc
 const VISLIT_DATA = "vislit-data";
 const PROJECTS_JSON = "projects.json";
 

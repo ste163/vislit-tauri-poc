@@ -1,8 +1,10 @@
-// TODO:
-// once I figure out which fs and path APIs I need
-// add those to the allow-list
-import { writeFile, BaseDirectory } from "@tauri-apps/api/fs";
-import { join } from "@tauri-apps/api/path";
+import {
+  writeFile,
+  BaseDirectory,
+  createDir,
+  removeDir,
+  join,
+} from "./allowed-tauri-apis";
 import { getAllProjects, getFileSize } from "./helpers";
 import {
   Project,
@@ -13,6 +15,12 @@ import {
   Actions,
 } from "./types";
 
+/**
+ * NOTE: (After POC)
+ * Instead of having a putProject that handles both CREATE and UPDATE
+ * because these two events are very different, break into two separate functions.
+ * As the CREATE event creates much more data instead of updating a single json object
+ */
 async function putProject(project: Project): Promise<ItemMetadata> {
   /**
    * For POC
@@ -31,21 +39,58 @@ async function putProject(project: Project): Promise<ItemMetadata> {
     // doing nothing here because I'm only ever doing a CREATE and not UPDATE
   }
 
-  // TODO:
-  // assuming that all projects are CREATE
-  // so create the directory structure and JSON files for a project
-
   const newProjectState: Projects = {
     ...projects,
     [project.id]: project,
   };
+
+  await writeProjectState(newProjectState);
+
+  /**
+   * New project, create directory structure and files
+   */
+  await createDir(await join(VISLIT_DATA, "projects", project.id), {
+    dir: BaseDirectory.AppData,
+    recursive: true,
+  });
+
+  await createDir(
+    await join(VISLIT_DATA, "projects", project.id, "documents"),
+    {
+      dir: BaseDirectory.AppData,
+      recursive: true,
+    }
+  );
+
+  await createDir(await join(VISLIT_DATA, "projects", project.id, "notes"), {
+    dir: BaseDirectory.AppData,
+    recursive: true,
+  });
+
   await writeFile(
-    await join(VISLIT_DATA, PROJECTS_JSON),
-    JSON.stringify(newProjectState),
+    await join(VISLIT_DATA, "projects", project.id, "goals.json"),
+    JSON.stringify({}),
     {
       dir: BaseDirectory.AppData,
     }
   );
+
+  await writeFile(
+    await join(VISLIT_DATA, "projects", project.id, "progress.json"),
+    JSON.stringify({}),
+    {
+      dir: BaseDirectory.AppData,
+    }
+  );
+
+  await writeFile(
+    await join(VISLIT_DATA, "projects", project.id, "notes.json"),
+    JSON.stringify({}),
+    {
+      dir: BaseDirectory.AppData,
+    }
+  );
+
   return {
     projects: newProjectState,
     action: Actions.AddProject,
@@ -67,13 +112,14 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
   const projects = await getAllProjects();
 
   delete projects?.[id];
-  await writeFile(
-    await join(VISLIT_DATA, PROJECTS_JSON),
-    JSON.stringify(projects),
-    {
-      dir: BaseDirectory.AppData,
-    }
-  );
+
+  await removeDir(await join(VISLIT_DATA, "projects", id), {
+    dir: BaseDirectory.AppData,
+    recursive: true,
+  });
+
+  await writeProjectState(projects);
+
   return {
     projects,
     action: Actions.DeleteProject,
@@ -81,6 +127,22 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
     totalItems: projects ? Object.keys(projects).length : 0,
     fileSize: getFileSize(projects),
   };
+}
+
+// NOTE:
+// could potentially have a wrapper for writeFile that takes:
+// ({path: string, state: Projects | Progress | etc})
+// that way, we have 1 place where we check the base dir: AppData.
+// so then I only need 1 place to 'getPathToVislitData' as a user will be able to
+// set any data storage location they want
+async function writeProjectState(state: Projects): Promise<void> {
+  await writeFile(
+    await join(VISLIT_DATA, PROJECTS_JSON),
+    JSON.stringify(state),
+    {
+      dir: BaseDirectory.AppData,
+    }
+  );
 }
 
 export { putProject, deleteProject };

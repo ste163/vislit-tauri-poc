@@ -1,10 +1,11 @@
 import {
-  exists,
-  createDir,
+  appDataDir,
   BaseDirectory,
+  createDir,
+  exists,
+  join,
   writeFile,
-} from "@tauri-apps/api/fs";
-import { join, appDataDir } from "@tauri-apps/api/path";
+} from "./allowed-tauri-apis";
 import { getAllProjects, getFileSize } from "./helpers";
 import { Actions, ItemMetadata, PROJECTS_JSON, VISLIT_DATA } from "./types";
 
@@ -17,6 +18,9 @@ async function initializeApi(): Promise<ItemMetadata> {
     const VISLIT_DATA_PATH = await join(await appDataDir(), VISLIT_DATA);
     console.log("PATH TO DATA: ", VISLIT_DATA_PATH);
     const doesVislitDataExist = await exists(VISLIT_DATA_PATH);
+    /**
+     * First time setup, create all needed .json files and directory structure
+     */
     if (doesVislitDataExist) {
       const projects = await getAllProjects();
       return {
@@ -27,6 +31,15 @@ async function initializeApi(): Promise<ItemMetadata> {
         fileSize: getFileSize(projects),
       };
     } else {
+      /**
+       * This user has started the app before, so load their data.
+       * TODO after POC: user can select a custom data location, so read
+       * where that is first then get the data from there.
+       * (This may require writing custom Rust code as this will be a direct path
+       * to anywhere on the file system). And depending on how tightly related the endpoints are
+       * to file paths, might be best to follow the Class-based structure with dependency injection
+       * like the Electron version of Vislit
+       */
       await createDir(VISLIT_DATA, {
         dir: BaseDirectory.AppData,
         recursive: true,
