@@ -4,31 +4,8 @@ import {
   BaseDirectory,
   readTextFile,
 } from "./allowed-tauri-apis";
-import { getFileSize } from "./helpers";
+import { getFileSize } from "./metrics";
 import { Paths, Actions, ItemMetadata, KeyedProgress } from "./types";
-
-async function createProgress({
-  projectId,
-  progress,
-}: {
-  projectId: string;
-  progress: KeyedProgress;
-}): Promise<ItemMetadata> {
-  await writeProgressState(projectId, progress);
-
-  const allProgress = await getAllProgress(projectId);
-  // this is broken!
-  const totalProgressCount = Object.keys(allProgress).length;
-
-  return {
-    progress,
-    action: Actions.AddProgress,
-    itemsAffectedByAction: progress ? Object.keys(progress).length : 0,
-    totalItems: totalProgressCount,
-    yearsWorthOfProgress: totalProgressCount / 12,
-    fileSize: getFileSize(progress),
-  };
-}
 
 async function getAllProgress(projectId: string): Promise<KeyedProgress> {
   const contents = await readTextFile(
@@ -38,6 +15,45 @@ async function getAllProgress(projectId: string): Promise<KeyedProgress> {
     }
   );
   return JSON.parse(contents) as KeyedProgress;
+}
+
+async function getAllProgressWithMetaData(
+  projectId: string
+): Promise<ItemMetadata> {
+  const progress = await getAllProgress(projectId);
+  const totalProgressCount = Object.keys(progress).length;
+  return {
+    progress,
+    action: Actions.LoadProgress,
+    itemsAffectedByAction: 0,
+    totalItems: totalProgressCount,
+    yearsWorthOfProgress: totalProgressCount / 30 / 12, // divide from days into months, then years
+    fileSize: getFileSize(progress),
+  };
+}
+
+async function createProgress({
+  projectId,
+  progress,
+}: {
+  projectId: string;
+  progress: KeyedProgress;
+}): Promise<ItemMetadata> {
+  const allProgress = await getAllProgress(projectId);
+  const newProgressState: KeyedProgress = {
+    ...allProgress,
+    ...progress,
+  };
+  const totalProgressCount = Object.keys(newProgressState).length;
+  await writeProgressState(projectId, newProgressState);
+  return {
+    progress: newProgressState,
+    action: Actions.AddProgress,
+    itemsAffectedByAction: Object.keys(progress).length,
+    totalItems: totalProgressCount,
+    yearsWorthOfProgress: totalProgressCount / 30 / 12, // divide from days into months, then years
+    fileSize: getFileSize(newProgressState),
+  };
 }
 
 async function writeProgressState(
@@ -53,4 +69,4 @@ async function writeProgressState(
   );
 }
 
-export { createProgress };
+export { getAllProgressWithMetaData, createProgress };

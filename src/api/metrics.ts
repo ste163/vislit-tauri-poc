@@ -11,14 +11,35 @@ async function measurePerformance(
   const start = performance.now();
   const result = await fn();
   const end = performance.now();
-  console.log(result);
   return {
     ...result,
     fileSize: roundUpToTwoDecimalPlaces(result.fileSize),
+    yearsWorthOfProgress: result.yearsWorthOfProgress
+      ? roundUpToTwoDecimalPlaces(result.yearsWorthOfProgress)
+      : undefined,
     timeToComplete: roundUpToTwoDecimalPlaces(
       convertMillisecondsToSeconds(end - start)
     ),
   };
+}
+
+/**
+ * Gets the estimated file size of a json string object.
+ * Because storing everything as JSON, this should be
+ * pretty accurate.
+ * Returns size in megabytes or 0 if an error.
+ */
+function getFileSize(any: any) {
+  try {
+    const length = new TextEncoder().encode(JSON.stringify(any)).length;
+    const sizeInKiloBytes = length / 1024;
+    const sizeInMegaBytes = sizeInKiloBytes / 1024;
+    return sizeInMegaBytes;
+  } catch (error) {
+    console.log("error getting file size for", any);
+    console.error(error);
+    return 0;
+  }
 }
 
 /**
@@ -35,4 +56,4 @@ const convertMillisecondsToSeconds = (number: number) => number / 1000;
 const roundUpToTwoDecimalPlaces = (number: number) =>
   Math.round(number * 100) / 100;
 
-export { measurePerformance };
+export { getFileSize, measurePerformance };

@@ -6,7 +6,8 @@ import {
   join,
   writeFile,
 } from "./allowed-tauri-apis";
-import { getAllProjects, getFileSize } from "./helpers";
+import { getFileSize } from "./metrics";
+import { getAllProjects } from "./projects";
 import { Paths, Actions, ItemMetadata } from "./types";
 
 /**

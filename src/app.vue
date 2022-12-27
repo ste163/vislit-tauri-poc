@@ -8,6 +8,7 @@ import {
   KeyedProgress,
   measurePerformance,
   initializeApi,
+  getAllProgressWithMetaData,
   createProgress,
   putProject,
   deleteProject,
@@ -29,11 +30,11 @@ import { faker } from "@faker-js/faker/locale/en";
  * - Add TipTap and test creating large HTML files (to test read/write/delete performance on full projects)
  * - Super basic unit tests for UI and API and mocking Tauri APIs
  */
-
-const projects = ref<Projects>(null);
+const projects = ref<Projects | null>(null);
+const selectedProject = ref<Project | null>(null);
+const selectedProjectProgress = ref<KeyedProgress | null>(null);
 const isOperatingOnProject = ref<boolean>(false);
 const isOperatingOnProgress = ref<boolean>(false);
-const selectedProject = ref<Project | null>(null);
 
 /**
  * Performance dashboard state
@@ -41,6 +42,9 @@ const selectedProject = ref<Project | null>(null);
 const operationLog = ref<ItemMetadataPerformance[]>([]);
 const mostRecentOperation = ref<ItemMetadataPerformance | null>(null);
 const initialLoadData = ref<ItemMetadataPerformance | null>(null);
+const selectedProgressInitialLoadData = ref<ItemMetadataPerformance | null>(
+  null
+);
 
 const expansionPanelTitle = computed(() =>
   selectedProject.value
@@ -164,11 +168,19 @@ watch(mostRecentOperation, (mostRecentOperation) => {
     operationLog.value = [...operationLog.value, mostRecentOperation];
 });
 
-watch(selectedProject, (projectState) => {
-  if (projects.value && !projectState) {
+watch(selectedProject, async (projectState) => {
+  if (projects.value && !projectState)
     // if no project is selected, then select first
     // (used to select first project if you delete a project)
     selectedProject.value = Object.values(projects.value)[0];
+
+  if (projectState) {
+    const response = await measurePerformance(
+      async () => await getAllProgressWithMetaData(projectState.id)
+    );
+    selectedProjectProgress.value = response.progress || null;
+    selectedProgressInitialLoadData.value = response;
+    mostRecentOperation.value = response;
   }
 });
 
@@ -191,11 +203,6 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
             <strong>Goal:</strong> five years of progress data with "acceptable"
             speeds on low-high end machines
           </p>
-          <!-- 
-          NOTE
-          Known issue: can click or press enter multiple times
-          and multiple put requests go through.
-          -->
           <div class="d-flex mt-2">
             <v-btn
               @click="addProject"
@@ -270,11 +277,23 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                 </div>
                 <v-divider vertical class="mx-4" />
                 <div>
+                  <!-- TODO: 
+                  need to separate based on which is a project or progress.
+                  currently resets based on last operation -->
                   <h5>projects.json file size</h5>
                   ~ {{ mostRecentOperation?.fileSize }} mb
                 </div>
               </div>
             </div>
+
+            <v-divider class="my-4"></v-divider>
+
+            <h4 class="mb-2">Active Project's Progress</h4>
+            <!-- First Progress load -->
+            <!-- Most recent Progress operation -->
+            <!-- Total Progress For Project -->
+            <!-- Estimate years -->
+            <!-- progress.json size -->
 
             <v-divider class="my-4"></v-divider>
 
@@ -297,7 +316,7 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                   <td>{{ operation.totalItems }}</td>
                   <td>{{ operation.timeToComplete }}</td>
                   <td>~ {{ operation.fileSize }} mb</td>
-                  <td>TODO</td>
+                  <td>{{ operation.yearsWorthOfProgress || "N/A" }}</td>
                 </tr>
               </tbody>
             </v-table>

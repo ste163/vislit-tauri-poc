@@ -1,7 +1,7 @@
 import { initializeApi } from "./initialize-api";
-import { measurePerformance } from "./performance";
+import { measurePerformance } from "./metrics";
 import { putProject, deleteProject } from "./projects";
-import { createProgress } from "./progress";
+import { getAllProgressWithMetaData, createProgress } from "./progress";
 import {
   Project,
   Projects,
@@ -15,6 +15,7 @@ export {
   initializeApi,
   putProject,
   deleteProject,
+  getAllProgressWithMetaData,
   createProgress,
 };
 

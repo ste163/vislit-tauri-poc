@@ -4,9 +4,20 @@ import {
   createDir,
   removeDir,
   join,
+  readTextFile,
 } from "./allowed-tauri-apis";
-import { getAllProjects, getFileSize } from "./helpers";
+import { getFileSize } from "./metrics";
 import { Project, ItemMetadata, Projects, Paths, Actions } from "./types";
+
+async function getAllProjects(): Promise<Projects> {
+  const contents = await readTextFile(
+    await join(Paths.VislitData, Paths.ProjectsJson),
+    {
+      dir: BaseDirectory.AppData,
+    }
+  );
+  return JSON.parse(contents) as Projects;
+}
 
 /**
  * NOTE: (After POC)
@@ -146,4 +157,4 @@ async function writeProjectState(state: Projects): Promise<void> {
   );
 }
 
-export { putProject, deleteProject };
+export { getAllProjects, putProject, deleteProject };

@@ -40,15 +40,16 @@ interface Progress {
   completed: boolean;
 }
 
-// new Date.toString() will probably be best, but can play around with it
-type KeyedProgress = Record<string, Progress> | null;
+// new Date.toISOString() will probably be best, but can play around with it
+type KeyedProgress = Record<string, Progress>;
 
-type Projects = Record<string, Project> | null;
+type Projects = Record<string, Project>;
 
 enum Actions {
   InitialLoad = "Initial Load",
   AddProject = "Add Project",
   DeleteProject = "Delete Project",
+  LoadProgress = "Progress Loaded",
   AddProgress = "Add Progress",
 }
 
@@ -67,6 +68,7 @@ interface ItemMetadataPerformance extends ItemMetadata {
 }
 
 export { Paths, Actions };
+
 export type {
   Project,
   Projects,
