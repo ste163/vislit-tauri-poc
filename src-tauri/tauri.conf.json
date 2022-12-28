@@ -15,7 +15,12 @@
       "all": false,
       "fs": {
         "all": true,
-        "scope": ["$APPDATA/*"]
+        "scope": [
+          "$APPDATA/*",
+          "$APPDATA/vislit-data/*",
+          "$APPDATA/vislit-data/projects/*",
+          "$APPDATA/vislit-data/projects/*/*"
+        ]
       },
       "path": {
         "all": true
