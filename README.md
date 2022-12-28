@@ -66,8 +66,9 @@ pnpm start
 Tauri tooling:
 https://tauri.app/v1/guides/development/updating-dependencies
 
-Update rust with
+Update Tauri core cargo packages with
 
 ```
-rust update
+cd src-tauri
+cargo update
 ```
