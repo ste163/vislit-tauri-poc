@@ -23,7 +23,8 @@ import { faker } from "@faker-js/faker/locale/en";
 
 /**
  * TODO
- * - Add Putting 30 days worth of Progress
+ * - Move API to run in a web worker that receives messages from UI
+ *   (need to think of a good way to call functions from the api that will be easy to work with)
  * - Adding putting 1 day of Progress
  * - Add Removing 1 Progress
  * - Rendering in table for '~ 1 year, 4 months'
@@ -40,7 +41,8 @@ const isOperatingOnProgress = ref<boolean>(false);
  * Performance dashboard state
  */
 const operationLog = ref<ItemMetadataPerformance[]>([]);
-const mostRecentOperation = ref<ItemMetadataPerformance | null>(null);
+const mostRecentProjectOperation = ref<ItemMetadataPerformance | null>(null);
+const mostRecentProgressOperation = ref<ItemMetadataPerformance | null>(null);
 const initialLoadData = ref<ItemMetadataPerformance | null>(null);
 const selectedProgressInitialLoadData = ref<ItemMetadataPerformance | null>(
   null
@@ -73,7 +75,7 @@ async function addProject() {
         async () => await putProject(project)
       );
       projects.value = response.projects || null;
-      mostRecentOperation.value = response;
+      mostRecentProjectOperation.value = response;
     }
   } catch (error) {
     console.log("addProject error - ", error);
@@ -90,7 +92,7 @@ async function removeProject(id: string | undefined) {
         async () => await deleteProject(id)
       );
       projects.value = response.projects || null;
-      mostRecentOperation.value = response;
+      mostRecentProjectOperation.value = response;
       selectedProject.value = null;
     }
   } catch (error) {
@@ -101,6 +103,15 @@ async function removeProject(id: string | undefined) {
 }
 
 async function addMonthOfProgress(projectId: string | undefined) {
+  // NOTE:
+  // this task begins to block the main thread
+  // and lag the UI when we start to get 2+ years of progress data
+  // RECOMMENDED SOLUTION:
+  // move long-running tasks into a web-worker
+  // ie: the entire api should be a web-worker
+  // need to experiment with how it can work
+  // as workers use event messages to pass data
+  // instead of invoking the functions like I'm currently doing
   try {
     if (projectId && !isOperatingOnProgress.value) {
       isOperatingOnProgress.value = true;
@@ -126,7 +137,8 @@ async function addMonthOfProgress(projectId: string | undefined) {
         async () =>
           await createProgress({ projectId, progress: monthOfProgress })
       );
-      mostRecentOperation.value = response;
+      mostRecentProgressOperation.value = response;
+      selectedProjectProgress.value = response.progress || null;
     }
   } catch (error) {
     console.log("addMonthOfProgress - ", error);
@@ -156,16 +168,21 @@ function selectProject(id: string) {
 onMounted(async () => {
   const result = await measurePerformance(initializeApi);
   initialLoadData.value = result;
-  mostRecentOperation.value = result;
+  mostRecentProjectOperation.value = result;
   projects.value = result.projects || null;
   if (result.projects)
     // select first project on load if one exists
     selectedProject.value = Object.values(result.projects)[0];
 });
 
-watch(mostRecentOperation, (mostRecentOperation) => {
-  if (mostRecentOperation)
-    operationLog.value = [...operationLog.value, mostRecentOperation];
+watch(mostRecentProjectOperation, (mostRecentProjectOperation) => {
+  if (mostRecentProjectOperation)
+    operationLog.value = [...operationLog.value, mostRecentProjectOperation];
+});
+
+watch(mostRecentProgressOperation, (mostRecentProgressOperation) => {
+  if (mostRecentProgressOperation)
+    operationLog.value = [...operationLog.value, mostRecentProgressOperation];
 });
 
 watch(selectedProject, async (projectState) => {
@@ -174,13 +191,17 @@ watch(selectedProject, async (projectState) => {
     // (used to select first project if you delete a project)
     selectedProject.value = Object.values(projects.value)[0];
 
+  /**
+   * User selects a new project,
+   * fetch progress for that project id
+   */
   if (projectState) {
     const response = await measurePerformance(
       async () => await getAllProgressWithMetaData(projectState.id)
     );
     selectedProjectProgress.value = response.progress || null;
     selectedProgressInitialLoadData.value = response;
-    mostRecentOperation.value = response;
+    mostRecentProgressOperation.value = response;
   }
 });
 
@@ -260,15 +281,22 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
         <v-alert class="mt-5 d-flex" compact color="info">
           <div v-if="projects" class="d-flex flex-column">
             <div class="d-flex flex-column mb-4">
+              <h4 class="mb-2">Project Operations</h4>
               <div class="d-flex">
-                <div class="mr-4">
+                <div>
+                  <h5>Initial project load time</h5>
+                  {{ initialLoadData?.timeToComplete || 0 }}
+                  seconds
+                </div>
+                <v-divider vertical class="mx-4" />
+                <div>
                   <h5>Last operation</h5>
-                  {{ mostRecentOperation?.action }}
+                  {{ mostRecentProjectOperation?.action }}
                 </div>
                 <v-divider vertical class="mx-4" />
                 <div>
                   <h5>Time to complete last operation</h5>
-                  {{ mostRecentOperation?.timeToComplete }} seconds
+                  {{ mostRecentProjectOperation?.timeToComplete }} seconds
                 </div>
                 <v-divider vertical class="mx-4" />
                 <div>
@@ -277,23 +305,48 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                 </div>
                 <v-divider vertical class="mx-4" />
                 <div>
-                  <!-- TODO: 
-                  need to separate based on which is a project or progress.
-                  currently resets based on last operation -->
                   <h5>projects.json file size</h5>
-                  ~ {{ mostRecentOperation?.fileSize }} mb
+                  ~ {{ mostRecentProjectOperation?.projectsJsonSize || 0 }} mb
                 </div>
               </div>
             </div>
 
             <v-divider class="my-4"></v-divider>
 
-            <h4 class="mb-2">Active Project's Progress</h4>
-            <!-- First Progress load -->
-            <!-- Most recent Progress operation -->
-            <!-- Total Progress For Project -->
-            <!-- Estimate years -->
-            <!-- progress.json size -->
+            <h4 class="mb-2">Progress Operations</h4>
+            <sub class="mb-4">(on the selected project)</sub>
+            <div class="d-flex">
+              <div>
+                <h5>Initial progress load time</h5>
+                {{ selectedProgressInitialLoadData?.timeToComplete || 0 }}
+                seconds
+              </div>
+              <v-divider vertical class="mx-4" />
+              <div>
+                <h5>Last operation</h5>
+                {{ mostRecentProgressOperation?.action }}
+              </div>
+              <v-divider vertical class="mx-4" />
+              <div>
+                <h5>Time to complete last operation</h5>
+                {{ mostRecentProgressOperation?.timeToComplete }} seconds
+              </div>
+              <v-divider vertical class="mx-4" />
+              <div>
+                <h5>Total progress count</h5>
+                {{ Object.keys(selectedProjectProgress || {}).length }}
+              </div>
+              <v-divider vertical class="mx-4" />
+              <div>
+                <h5>Years of progress</h5>
+                {{ mostRecentProgressOperation?.yearsWorthOfProgress || "N/A" }}
+              </div>
+              <v-divider vertical class="mx-4" />
+              <div>
+                <h5>progress.json file size</h5>
+                ~ {{ mostRecentProgressOperation?.progressJsonSize || 0 }} mb
+              </div>
+            </div>
 
             <v-divider class="my-4"></v-divider>
 
@@ -305,7 +358,8 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                   <th class="text-left">Count of Items Affected</th>
                   <th class="text-left">Total Items</th>
                   <th class="text-left">Time to Complete</th>
-                  <th class="text-left">File Size</th>
+                  <th class="text-left">projects.json size</th>
+                  <th class="text-left">progress.json size</th>
                   <th class="text-left">~ Years of Progress</th>
                 </tr>
               </thead>
@@ -315,7 +369,8 @@ invoke("greet", { name: "Im the vue app talking to backend!" })
                   <td>{{ operation.itemsAffectedByAction }}</td>
                   <td>{{ operation.totalItems }}</td>
                   <td>{{ operation.timeToComplete }}</td>
-                  <td>~ {{ operation.fileSize }} mb</td>
+                  <td>~ {{ operation.projectsJsonSize }} mb</td>
+                  <td>~ {{ operation.progressJsonSize }} mb</td>
                   <td>{{ operation.yearsWorthOfProgress || "N/A" }}</td>
                 </tr>
               </tbody>

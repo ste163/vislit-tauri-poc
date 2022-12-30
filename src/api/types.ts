@@ -18,17 +18,6 @@ interface Project {
   dateModified: Date;
 }
 
-// would potentially be best to ALWAYS store dates using the client's timezone
-// and then rendering and checking based on that.
-// so then there is always the right amount of data. It may fix the issues
-// of a user
-/**
- * Progress object is
- * [new Date()]: { Progress }
- * and then when we check the Add/Update
- * we check it based on if there is any date for this day
- * regardless of timezone
- */
 interface Progress {
   date: Date;
   projectId: string;
@@ -40,7 +29,13 @@ interface Progress {
   completed: boolean;
 }
 
-// new Date.toISOString() will probably be best, but can play around with it
+/**
+ * Progress object is
+ * [new Date().toISOString()]: { Progress }
+ * and then when we check the Add/Update
+ * we check it based on if there is any date for this day,
+ * regardless of timezone
+ */
 type KeyedProgress = Record<string, Progress>;
 
 type Projects = Record<string, Project>;
@@ -59,7 +54,8 @@ interface ItemMetadata {
   action: Actions;
   itemsAffectedByAction: number;
   totalItems: number;
-  fileSize: number;
+  projectsJsonSize?: number;
+  progressJsonSize?: number;
   yearsWorthOfProgress?: number;
 }
 

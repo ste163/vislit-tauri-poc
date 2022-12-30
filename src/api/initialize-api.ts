@@ -29,7 +29,7 @@ async function initializeApi(): Promise<ItemMetadata> {
         action: Actions.InitialLoad,
         itemsAffectedByAction: 0,
         totalItems: projects ? Object.keys(projects).length : 0,
-        fileSize: getFileSize(projects),
+        projectsJsonSize: getFileSize(projects),
       };
     } else {
       /**
@@ -49,21 +49,21 @@ async function initializeApi(): Promise<ItemMetadata> {
         dir: BaseDirectory.AppData,
       });
       return {
-        projects: null,
+        projects: undefined,
         action: Actions.InitialLoad,
         itemsAffectedByAction: 0,
         totalItems: 0,
-        fileSize: 0,
+        projectsJsonSize: 0,
       };
     }
   } catch (error) {
     console.error(error);
     return {
-      projects: null,
+      projects: undefined,
       action: Actions.InitialLoad,
       itemsAffectedByAction: 0,
       totalItems: 0,
-      fileSize: 0,
+      projectsJsonSize: 0,
     };
   }
 }

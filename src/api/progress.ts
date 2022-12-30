@@ -28,7 +28,7 @@ async function getAllProgressWithMetaData(
     itemsAffectedByAction: 0,
     totalItems: totalProgressCount,
     yearsWorthOfProgress: totalProgressCount / 30 / 12, // divide from days into months, then years
-    fileSize: getFileSize(progress),
+    progressJsonSize: getFileSize(progress),
   };
 }
 
@@ -52,7 +52,7 @@ async function createProgress({
     itemsAffectedByAction: Object.keys(progress).length,
     totalItems: totalProgressCount,
     yearsWorthOfProgress: totalProgressCount / 30 / 12, // divide from days into months, then years
-    fileSize: getFileSize(newProgressState),
+    progressJsonSize: getFileSize(newProgressState),
   };
 }
 

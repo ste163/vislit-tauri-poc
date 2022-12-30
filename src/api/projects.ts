@@ -108,7 +108,7 @@ async function putProject(project: Project): Promise<ItemMetadata> {
     action: Actions.AddProject,
     itemsAffectedByAction: Object.keys(newProjectState).length,
     totalItems: Object.keys(newProjectState).length,
-    fileSize: getFileSize(newProjectState),
+    projectsJsonSize: getFileSize(newProjectState),
   };
 }
 
@@ -137,7 +137,7 @@ async function deleteProject(id: string): Promise<ItemMetadata> {
     action: Actions.DeleteProject,
     itemsAffectedByAction: projects ? Object.keys(projects).length : 0,
     totalItems: projects ? Object.keys(projects).length : 0,
-    fileSize: getFileSize(projects),
+    projectsJsonSize: getFileSize(projects),
   };
 }
 

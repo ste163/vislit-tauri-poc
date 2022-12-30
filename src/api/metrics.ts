@@ -2,8 +2,7 @@ import { ItemMetadataPerformance, ItemMetadata } from "./types";
 
 /**
  * Wrapper function that takes any async function
- * and returns the time in seconds and estimated file size,
- * rounded up to 2 decimal points
+ * and returns performance data about that function
  */
 async function measurePerformance(
   fn: (any?: any) => Promise<ItemMetadata>
@@ -13,7 +12,8 @@ async function measurePerformance(
   const end = performance.now();
   return {
     ...result,
-    fileSize: roundUpToTwoDecimalPlaces(result.fileSize),
+    projectsJsonSize: roundUpToTwoDecimalPlaces(result?.projectsJsonSize || 0),
+    progressJsonSize: roundUpToTwoDecimalPlaces(result?.progressJsonSize || 0),
     yearsWorthOfProgress: result.yearsWorthOfProgress
       ? roundUpToTwoDecimalPlaces(result.yearsWorthOfProgress)
       : undefined,
