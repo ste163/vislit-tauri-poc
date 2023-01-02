@@ -22,9 +22,19 @@ import { computed, onMounted, ref, watch } from "vue";
 import { faker } from "@faker-js/faker/locale/en";
 
 /**
+ * NOTE:
+ * Attempted to POC using web workers to run
+ * the api in, so that the writes to the file system
+ * would be on a a separate thread. This is not allowed by Tauri
+ * due to limitations with web views
+ * https://github.com/tauri-apps/tauri/discussions/3922
+ *
+ * If the UI begins to hang frequently during progress writes,
+ * need to move that to the rust core
+ */
+
+/**
  * TODO
- * - Move API to run in a web worker that receives messages from UI
- *   (need to think of a good way to call functions from the api that will be easy to work with)
  * - Adding putting 1 day of Progress
  * - Add Removing 1 Progress
  * - Rendering in table for '~ 1 year, 4 months'
