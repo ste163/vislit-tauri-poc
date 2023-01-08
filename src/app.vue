@@ -23,14 +23,14 @@ import { faker } from "@faker-js/faker/locale/en";
 
 /**
  * NOTE:
- * Attempted to POC using web workers to run
- * the api in, so that the writes to the file system
- * would be on a a separate thread. This is not allowed by Tauri
+ * Attempted to run api in web workers,
+ * so that writes to the file system
+ * would be on a separate thread. This is not allowed by Tauri
  * due to limitations with web views
  * https://github.com/tauri-apps/tauri/discussions/3922
  *
  * If the UI begins to hang frequently during progress writes,
- * need to move that to the rust core
+ * will need to move that logic to the Rust layer
  */
 
 /**
